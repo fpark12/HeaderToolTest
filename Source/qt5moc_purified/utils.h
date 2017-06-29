@@ -3,6 +3,7 @@
 #define UTILS_H
 
 //#include <QtCore/qglobal.h>
+#include <string>
 
 namespace header_tool
 {
@@ -81,9 +82,37 @@ namespace header_tool
 		return data;
 	}
 
-	template<typename T, typename U = size_t>
-	T sub(const T& vec, U pos, U len = -1);
+	using str = std::string;
 
+	template<typename T, typename... Args, typename U = size_t>
+	T sub(const T& vec, U pos, U len = -1)
+	{
+		if (pos >= vec.size())
+		{
+			return T();
+		}
+
+		if (len < 0)
+		{
+			len = vec.size() - pos;
+		}
+
+		if (pos < 0)
+		{
+			len += pos;
+			pos = 0;
+		}
+
+		if (len + pos > vec.size())
+		{
+			len = vec.size() - pos;
+		}
+		if (pos == 0 && len == vec.size())
+		{
+			return vec;
+		}
+		return T(vec.data() + pos, vec.data() + pos + len);
+	}
 	/*
 	template<typename T>
 	T sub(const T& vec, size_t pos)

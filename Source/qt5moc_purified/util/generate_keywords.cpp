@@ -442,6 +442,7 @@ void makeTable(const Keyword keywords[])
 	printf("\n};\n");
 }
 
+/*
 int main(int argc, char **)
 {
 	printf("// auto generated\n"
@@ -452,3 +453,4 @@ int main(int argc, char **)
 		makeTable(keywords);
 	return 0;
 }
+*/

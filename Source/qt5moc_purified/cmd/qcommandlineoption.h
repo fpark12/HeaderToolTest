@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <cstdio>
+#include <sstream>
 
 template<typename ... Args>
 std::string string_format(const std::string& format, Args ... args)

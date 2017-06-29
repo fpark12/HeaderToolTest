@@ -1,6 +1,11 @@
 #include "preprocessor.h"
 #include "utils.h"
 
+namespace header_tool
+{
+
+	bool Preprocessor::preprocessOnly = false;
+}
 #if 0
 #include <std::list<std::string>.h>
 #include <qfile.h>
@@ -81,7 +86,6 @@ static std::vector<uint8> cleaned(const std::vector<uint8> &input)
     return result;
 }
 
-bool Preprocessor::preprocessOnly = false;
 void Preprocessor::skipUntilEndif()
 {
     while(index < symbols.size() - 1 && symbols.at(index).token != PP_ENDIF){
