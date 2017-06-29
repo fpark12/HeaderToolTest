@@ -1,7 +1,7 @@
-#ifndef QCOMMANDLINEOPTION_H
-#define QCOMMANDLINEOPTION_H
+#ifndef CommandLineOption_H
+#define CommandLineOption_H
 
-//#include <QtCore/std::list<std::string>.h>
+//#include <QtCore/std::vector<std::string>.h>
 //#include <QtCore/qshareddata.h>
 #include <memory>
 #include <string>
@@ -66,9 +66,9 @@ void split(const char pChr, Container<std::string, Arg> &pRet, const std::string
 namespace header_tool
 {
 
-	class QCommandLineOptionPrivate;
+	class CommandLineOptionPrivate;
 
-	class Q_CORE_EXPORT QCommandLineOption
+	class Q_CORE_EXPORT CommandLineOption
 	{
 	public:
 		enum Flags
@@ -79,32 +79,32 @@ namespace header_tool
 		//Q_DECLARE_FLAGS(Flags, Flag)
 		Flags flags;
 
-		explicit QCommandLineOption(const std::string &name);
-		explicit QCommandLineOption(const std::list<std::string> &names);
-		/*implicit*/ QCommandLineOption(const std::string &name, const std::string &description,
+		explicit CommandLineOption(const std::string &name);
+		explicit CommandLineOption(const std::vector<std::string> &names);
+		/*implicit*/ CommandLineOption(const std::string &name, const std::string &description,
 			const std::string &valueName = std::string(),
 			const std::string &defaultValue = std::string());
-		/*implicit*/ QCommandLineOption(const std::list<std::string> &names, const std::string &description,
+		/*implicit*/ CommandLineOption(const std::vector<std::string> &names, const std::string &description,
 			const std::string &valueName = std::string(),
 			const std::string &defaultValue = std::string());
-		QCommandLineOption(const QCommandLineOption &other);
+		CommandLineOption(const CommandLineOption &other);
 
-		~QCommandLineOption();
+		~CommandLineOption();
 
-		QCommandLineOption &operator=(const QCommandLineOption &other);
+		CommandLineOption &operator=(const CommandLineOption &other);
 #ifdef Q_COMPILER_RVALUE_REFS
-		QCommandLineOption &operator=(QCommandLineOption &&other) Q_DECL_NOTHROW
+		CommandLineOption &operator=(CommandLineOption &&other) Q_DECL_NOTHROW
 		{
 			swap(other); return *this;
 		}
 #endif
 
-		void swap(QCommandLineOption &other) Q_DECL_NOTHROW
+		void swap(CommandLineOption &other) Q_DECL_NOTHROW
 		{
 			std::swap(d, other.d);
 		}
 
-		std::list<std::string> names() const;
+		std::vector<std::string> names() const;
 
 		void setValueName(const std::string &name);
 		std::string valueName() const;
@@ -113,8 +113,8 @@ namespace header_tool
 		std::string description() const;
 
 		void setDefaultValue(const std::string &defaultValue);
-		void setDefaultValues(const std::list<std::string> &defaultValues);
-		std::list<std::string> defaultValues() const;
+		void setDefaultValues(const std::vector<std::string> &defaultValues);
+		std::vector<std::string> defaultValues() const;
 
 		//Flags flags() const;
 		void setFlags(Flags aflags);
@@ -129,11 +129,11 @@ namespace header_tool
 		*/
 
 	private:
-		std::shared_ptr<QCommandLineOptionPrivate> d;
+		std::shared_ptr<CommandLineOptionPrivate> d;
 	};
 
-	//Q_DECLARE_SHARED(QCommandLineOption)
-	//Q_DECLARE_OPERATORS_FOR_FLAGS(QCommandLineOption::Flags)
+	//Q_DECLARE_SHARED(CommandLineOption)
+	//Q_DECLARE_OPERATORS_FOR_FLAGS(CommandLineOption::Flags)
 
 }
-#endif // QCOMMANDLINEOPTION_H
+#endif // CommandLineOption_H

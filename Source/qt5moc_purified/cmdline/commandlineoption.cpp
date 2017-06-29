@@ -1,4 +1,4 @@
-#include "qcommandlineoption.h"
+#include "commandlineoption.h"
 
 #include <set>
 
@@ -8,28 +8,28 @@
 namespace header_tool
 {
 
-	class QCommandLineOptionPrivate // : public QSharedData
+	class CommandLineOptionPrivate // : public QSharedData
 	{
 	public:
 		Q_NEVER_INLINE
-			explicit QCommandLineOptionPrivate(const std::string &name)
+			explicit CommandLineOptionPrivate(const std::string &name)
 		{
 			names.push_back(name);
 			removeInvalidNames(names);
 		}
 
 		Q_NEVER_INLINE
-			explicit QCommandLineOptionPrivate(const std::list<std::string> &names)
+			explicit CommandLineOptionPrivate(const std::vector<std::string> &names)
 		{
 			//a.splice(a.end(), b);
 			this->names.insert(this->names.begin(), names.begin(), names.end());
 			removeInvalidNames(this->names);
 		}
 
-		static void removeInvalidNames(std::list<std::string>& nameList);
+		static void removeInvalidNames(std::vector<std::string>& nameList);
 
 		//! The list of names used for this option.
-		std::list<std::string> names;
+		std::vector<std::string> names;
 
 		//! The documentation name for the value, if one is expected
 		//! Example: "-o <file>" means valueName == "file"
@@ -39,15 +39,15 @@ namespace header_tool
 		std::string description;
 
 		//! The list of default values used for this option.
-		std::list<std::string> defaultValues;
+		std::vector<std::string> defaultValues;
 
-		QCommandLineOption::Flags flags;
+		CommandLineOption::Flags flags;
 	};
 
 	/*!
 		\since 5.2
-		\class QCommandLineOption
-		\brief The QCommandLineOption class defines a possible command-line option.
+		\class CommandLineOption
+		\brief The CommandLineOption class defines a possible command-line option.
 		\inmodule QtCore
 		\ingroup shared
 		\ingroup tools
@@ -58,15 +58,15 @@ namespace header_tool
 		or take a value (e.g. \c{-o file}).
 
 		Examples:
-		\snippet code/src_corelib_tools_qcommandlineoption.cpp 0
+		\snippet code/src_corelib_tools_CommandLineOption.cpp 0
 
 		\sa QCommandLineParser
 	*/
 
 	/*!
-		\fn QCommandLineOption &QCommandLineOption::operator=(QCommandLineOption &&other)
+		\fn CommandLineOption &CommandLineOption::operator=(CommandLineOption &&other)
 
-		Move-assigns \a other to this QCommandLineOption instance.
+		Move-assigns \a other to this CommandLineOption instance.
 
 		\since 5.2
 	*/
@@ -81,8 +81,8 @@ namespace header_tool
 
 		\sa setDescription(), setValueName(), setDefaultValues()
 	*/
-	QCommandLineOption::QCommandLineOption(const std::string &name)
-		: d(new QCommandLineOptionPrivate(name))
+	CommandLineOption::CommandLineOption(const std::string &name)
+		: d(new CommandLineOptionPrivate(name))
 	{}
 
 	/*!
@@ -98,8 +98,8 @@ namespace header_tool
 
 		\sa setDescription(), setValueName(), setDefaultValues()
 	*/
-	QCommandLineOption::QCommandLineOption(const std::list<std::string> &names)
-		: d(new QCommandLineOptionPrivate(names))
+	CommandLineOption::CommandLineOption(const std::vector<std::string> &names)
+		: d(new CommandLineOptionPrivate(names))
 	{}
 
 	/*!
@@ -121,14 +121,14 @@ namespace header_tool
 		and later, it no longer is and can be used for C++11-style uniform
 		initialization:
 
-		\snippet code/src_corelib_tools_qcommandlineoption.cpp cxx11-init
+		\snippet code/src_corelib_tools_CommandLineOption.cpp cxx11-init
 
 		\sa setDescription(), setValueName(), setDefaultValues()
 	*/
-	QCommandLineOption::QCommandLineOption(const std::string &name, const std::string &description,
+	CommandLineOption::CommandLineOption(const std::string &name, const std::string &description,
 		const std::string &valueName,
 		const std::string &defaultValue)
-		: d(new QCommandLineOptionPrivate(name))
+		: d(new CommandLineOptionPrivate(name))
 	{
 		setValueName(valueName);
 		setDescription(description);
@@ -157,14 +157,14 @@ namespace header_tool
 		and later, it no longer is and can be used for C++11-style uniform
 		initialization:
 
-		\snippet code/src_corelib_tools_qcommandlineoption.cpp cxx11-init-list
+		\snippet code/src_corelib_tools_CommandLineOption.cpp cxx11-init-list
 
 		\sa setDescription(), setValueName(), setDefaultValues()
 	*/
-	QCommandLineOption::QCommandLineOption(const std::list<std::string> &names, const std::string &description,
+	CommandLineOption::CommandLineOption(const std::vector<std::string> &names, const std::string &description,
 		const std::string &valueName,
 		const std::string &defaultValue)
-		: d(new QCommandLineOptionPrivate(names))
+		: d(new CommandLineOptionPrivate(names))
 	{
 		setValueName(valueName);
 		setDescription(description);
@@ -172,33 +172,33 @@ namespace header_tool
 	}
 
 	/*!
-		Constructs a QCommandLineOption object that is a copy of the QCommandLineOption
+		Constructs a CommandLineOption object that is a copy of the CommandLineOption
 		object \a other.
 
 		\sa operator=()
 	*/
-	QCommandLineOption::QCommandLineOption(const QCommandLineOption &other)
+	CommandLineOption::CommandLineOption(const CommandLineOption &other)
 		: d(other.d)
 	{}
 
 	/*!
 		Destroys the command line option object.
 	*/
-	QCommandLineOption::~QCommandLineOption()
+	CommandLineOption::~CommandLineOption()
 	{}
 
 	/*!
-		Makes a copy of the \a other object and assigns it to this QCommandLineOption
+		Makes a copy of the \a other object and assigns it to this CommandLineOption
 		object.
 	*/
-	QCommandLineOption &QCommandLineOption::operator=(const QCommandLineOption &other)
+	CommandLineOption &CommandLineOption::operator=(const CommandLineOption &other)
 	{
 		d = other.d;
 		return *this;
 	}
 
 	/*!
-		\fn void QCommandLineOption::swap(QCommandLineOption &other)
+		\fn void CommandLineOption::swap(CommandLineOption &other)
 
 		Swaps option \a other with this option. This operation is very
 		fast and never fails.
@@ -207,7 +207,7 @@ namespace header_tool
 	/*!
 		Returns the names set for this option.
 	 */
-	std::list<std::string> QCommandLineOption::names() const
+	std::vector<std::string> CommandLineOption::names() const
 	{
 		return d->names;
 	}
@@ -239,17 +239,17 @@ namespace header_tool
 			Q_NEVER_INLINE
 				static bool warn(const char *what) Q_DECL_NOEXCEPT
 			{
-				/* qWarning */ printf("QCommandLineOption: Option names cannot %s", what);
+				/* qWarning */ printf("CommandLineOption: Option names cannot %s", what);
 				return true;
 			}
 		};
 	} // unnamed namespace
 
 	// static
-	void QCommandLineOptionPrivate::removeInvalidNames(std::list<std::string>& nameList)
+	void CommandLineOptionPrivate::removeInvalidNames(std::vector<std::string>& nameList)
 	{
 		if (/* Q_UNLIKELY */ (nameList.empty()))
-			/* qWarning */ printf("QCommandLineOption: Options must have at least one name");
+			/* qWarning */ printf("CommandLineOption: Options must have at least one name");
 		else
 		{
 			nameList.erase(std::remove_if(nameList.begin(), nameList.end(), IsInvalidName()), nameList.end());
@@ -272,7 +272,7 @@ namespace header_tool
 
 		\sa valueName()
 	 */
-	void QCommandLineOption::setValueName(const std::string &valueName)
+	void CommandLineOption::setValueName(const std::string &valueName)
 	{
 		d->valueName = valueName;
 	}
@@ -284,7 +284,7 @@ namespace header_tool
 
 		\sa setValueName()
 	 */
-	std::string QCommandLineOption::valueName() const
+	std::string CommandLineOption::valueName() const
 	{
 		return d->valueName;
 	}
@@ -298,7 +298,7 @@ namespace header_tool
 
 		\sa description()
 	 */
-	void QCommandLineOption::setDescription(const std::string &description)
+	void CommandLineOption::setDescription(const std::string &description)
 	{
 		d->description = description;
 	}
@@ -308,7 +308,7 @@ namespace header_tool
 
 		\sa setDescription()
 	 */
-	std::string QCommandLineOption::description() const
+	std::string CommandLineOption::description() const
 	{
 		return d->description;
 	}
@@ -323,9 +323,9 @@ namespace header_tool
 
 		\sa defaultValues() setDefaultValues()
 	 */
-	void QCommandLineOption::setDefaultValue(const std::string &defaultValue)
+	void CommandLineOption::setDefaultValue(const std::string &defaultValue)
 	{
-		std::list<std::string> newDefaultValues;
+		std::vector<std::string> newDefaultValues;
 		if (!defaultValue.empty())
 		{
 			newDefaultValues.resize(1);
@@ -343,7 +343,7 @@ namespace header_tool
 
 		\sa defaultValues() setDefaultValue()
 	 */
-	void QCommandLineOption::setDefaultValues(const std::list<std::string> &defaultValues)
+	void CommandLineOption::setDefaultValues(const std::vector<std::string> &defaultValues)
 	{
 		d->defaultValues = defaultValues;
 	}
@@ -353,7 +353,7 @@ namespace header_tool
 
 		\sa setDefaultValues()
 	 */
-	std::list<std::string> QCommandLineOption::defaultValues() const
+	std::vector<std::string> CommandLineOption::defaultValues() const
 	{
 		return d->defaultValues;
 	}
@@ -367,10 +367,10 @@ namespace header_tool
 		a particular option makes it internal, i.e. not listed in the help output.
 
 		\since 5.6
-		\obsolete Use setFlags(QCommandLineOption::HiddenFromHelp), QCommandLineOption::HiddenFromHelp
+		\obsolete Use setFlags(CommandLineOption::HiddenFromHelp), CommandLineOption::HiddenFromHelp
 		\sa isHidden
 	 */
-	void QCommandLineOption::setHidden(bool hide)
+	void CommandLineOption::setHidden(bool hide)
 	{
 		d->flags.setFlag(HiddenFromHelp, hide);
 	}
@@ -380,10 +380,10 @@ namespace header_tool
 		false if the option is listed.
 
 		\since 5.6
-		\obsolete Use flags() & QCommandLineOption::HiddenFromHelp
-		\sa setHidden(), QCommandLineOption::HiddenFromHelp
+		\obsolete Use flags() & CommandLineOption::HiddenFromHelp
+		\sa setHidden(), CommandLineOption::HiddenFromHelp
 	 */
-	bool QCommandLineOption::isHidden() const
+	bool CommandLineOption::isHidden() const
 	{
 		return d->flags & HiddenFromHelp;
 	}
@@ -394,10 +394,10 @@ namespace header_tool
 		Returns a set of flags that affect this command-line option.
 
 		\since 5.8
-		\sa setFlags(), QCommandLineOption::Flags
+		\sa setFlags(), CommandLineOption::Flags
 	 */
 	/*
-	QCommandLineOption::Flags QCommandLineOption::flags() const
+	CommandLineOption::Flags CommandLineOption::flags() const
 	{
 		return d->flags;
 	}
@@ -406,16 +406,16 @@ namespace header_tool
 		Set the set of flags that affect this command-line option to \a flags.
 
 		\since 5.8
-		\sa flags(), QCommandLineOption::Flags
+		\sa flags(), CommandLineOption::Flags
 	 */
 
-	void QCommandLineOption::setFlags(Flags flags)
+	void CommandLineOption::setFlags(Flags flags)
 	{
 		d->flags = flags;
 	}
 	
 	/*!
-		\enum QCommandLineOption::Flag
+		\enum CommandLineOption::Flag
 
 		\value HiddenFromHelp Hide this option in the user-visible help output. All
 		options are visible by default. Setting this flag for a particular
@@ -428,7 +428,7 @@ namespace header_tool
 		interpreted as short flags even when the parser is in
 		QCommandLineParser::ParseAsLongOptions mode.
 
-		\sa QCommandLineOption::setFlags(), QCommandLineOption::flags()
+		\sa CommandLineOption::setFlags(), CommandLineOption::flags()
 	*/
 
 }

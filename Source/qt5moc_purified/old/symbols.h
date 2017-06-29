@@ -24,12 +24,12 @@ namespace header_tool
 		inline SubArray(const std::string &a, size_t from, size_t len) : array(a.begin(), a.end()), from(from), len(len)
 		{}
 
-		inline SubArray(const std::vector<uint8> &a) : array(a), from(0), len(a.size())
+		inline SubArray(const std::string &a) : array(a), from(0), len(a.size())
 		{}
 		//inline SubArray(const char *s):array(s),from(0) { len = array.size(); }
-		inline SubArray(const std::vector<uint8> &a, size_t from, size_t len) : array(a), from(from), len(len)
+		inline SubArray(const std::string &a, size_t from, size_t len) : array(a), from(from), len(len)
 		{}
-		std::vector<uint8> array;
+		std::string array;
 		size_t from, len;
 		inline bool operator==(const SubArray &other) const
 		{
@@ -74,7 +74,7 @@ namespace header_tool
 
 	inline uint32 qHash(const SubArray &key)
 	{
-		return hash(key.array.data() + key.from, key.len);
+		return hash((uint8*)key.array.data() + key.from, key.len);
 		//return std::unordered_map( QLatin1String( key.array.data() + key.from, key.len ) );
 	}
 
@@ -121,10 +121,10 @@ namespace header_tool
 		inline Symbol(int lineNum, Token token) :
 			lineNum(lineNum), token(token)
 		{}
-		inline Symbol(int lineNum, Token token, const std::vector<uint8> &lexem) :
+		inline Symbol(int lineNum, Token token, const std::string &lexem) :
 			lineNum(lineNum), token(token), lex(lexem)
 		{}
-		inline Symbol(int lineNum, Token token, const std::vector<uint8> &lexem, int from, int len) :
+		inline Symbol(int lineNum, Token token, const std::string &lexem, int from, int len) :
 			lineNum(lineNum), token(token)
 		{
 			LexemStore::const_iterator it = lexemStore.constFind(SubArray(lexem, from, len));
@@ -141,15 +141,15 @@ namespace header_tool
 		}
 		int lineNum;
 		Token token;
-		inline std::vector<uint8> unquotedLexem() const
+		inline std::string unquotedLexem() const
 		{
 			return lex.mid(1, lex.length() - 2);
 		}
-		inline std::vector<uint8> lexem() const
+		inline std::string lexem() const
 		{
 			return lex;
 		}
-		inline operator std::vector<uint8>() const
+		inline operator std::string() const
 		{
 			return lex;
 		}

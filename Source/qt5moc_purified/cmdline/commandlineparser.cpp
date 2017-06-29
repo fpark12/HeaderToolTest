@@ -1,4 +1,4 @@
-#include "qcommandlineparser.h"
+#include "commandlineparser.h"
 
 //#include <qcoreapplication.h>
 #include <unordered_map>
@@ -18,48 +18,48 @@ namespace header_tool
 
 	//extern void Q_CORE_EXPORT qt_call_post_routines();
 
-	typedef std::unordered_map<std::string, int> NameHash_t;
+	//typedef std::unordered_map<std::string, int> std::unordered_map<std::string, int>;
 
-	class QCommandLineParserPrivate
+	class CommandLineParserPrivate
 	{
 	public:
-		inline QCommandLineParserPrivate()
-			: singleDashWordOptionMode(QCommandLineParser::ParseAsCompactedShortOptions),
-			optionsAfterPositionalArgumentsMode(QCommandLineParser::ParseAsOptions),
+		inline CommandLineParserPrivate()
+			: singleDashWordOptionMode(CommandLineParser::ParseAsCompactedShortOptions),
+			optionsAfterPositionalArgumentsMode(CommandLineParser::ParseAsOptions),
 			builtinVersionOption(false),
 			builtinHelpOption(false),
 			needsParsing(true)
 		{}
 
-		bool parse(const std::list<std::string> &args);
+		bool parse(const std::vector<std::string> &args);
 		void checkParsed(const char *method);
-		std::list<std::string> aliases(const std::string &name) const;
+		std::vector<std::string> aliases(const std::string &name) const;
 		std::string helpText() const;
 		bool registerFoundOption(const std::string &optionName);
 		bool parseOptionValue(const std::string &optionName, const std::string &argument,
-			std::list<std::string>::const_iterator *argumentIterator,
-			std::list<std::string>::const_iterator argsEnd);
+			std::vector<std::string>::const_iterator *argumentIterator,
+			std::vector<std::string>::const_iterator argsEnd);
 
 		//! Error text set when parse() returns false
 		std::string errorText;
 
 		//! The command line options used for parsing
-		std::vector<QCommandLineOption> commandLineOptionList;
+		std::vector<CommandLineOption> commandLineOptionList;
 
 		//! Hash mapping option names to their offsets in commandLineOptionList and optionArgumentList.
-		NameHash_t nameHash;
+		std::unordered_map<std::string, int> nameHash;
 
 		//! Option values found (only for options with a value)
-		std::unordered_map<int, std::list<std::string>> optionValuesHash;
+		std::unordered_map<int, std::vector<std::string>> optionValuesHash;
 
 		//! Names of options found on the command line.
-		std::list<std::string> optionNames;
+		std::vector<std::string> optionNames;
 
 		//! Arguments which did not belong to any option.
-		std::list<std::string> positionalArgumentList;
+		std::vector<std::string> positionalArgumentList;
 
 		//! Names of options which were unknown.
-		std::list<std::string> unknownOptionNames;
+		std::vector<std::string> unknownOptionNames;
 
 		//! Application description
 		std::string description;
@@ -74,10 +74,10 @@ namespace header_tool
 		std::vector<PositionalArgumentDefinition> positionalArgumentDefinitions;
 
 		//! The parsing mode for "-abc"
-		QCommandLineParser::SingleDashWordOptionMode singleDashWordOptionMode;
+		CommandLineParser::SingleDashWordOptionMode singleDashWordOptionMode;
 
 		//! How to parse "arg -option"
-		QCommandLineParser::OptionsAfterPositionalArgumentsMode optionsAfterPositionalArgumentsMode;
+		CommandLineParser::OptionsAfterPositionalArgumentsMode optionsAfterPositionalArgumentsMode;
 
 		//! Whether addVersionOption was called
 		bool builtinVersionOption;
@@ -90,13 +90,13 @@ namespace header_tool
 	};
 	//Q_DECLARE_TYPEINFO(QCommandLineParserPrivate::PositionalArgumentDefinition, Q_MOVABLE_TYPE);
 
-	std::list<std::string> QCommandLineParserPrivate::aliases(const std::string &optionName) const
+	std::vector<std::string> CommandLineParserPrivate::aliases(const std::string &optionName) const
 	{
-		const NameHash_t::const_iterator it = nameHash.find(optionName);
+		const std::unordered_map<std::string, int>::const_iterator it = nameHash.find(optionName);
 		if (it == nameHash.cend())
 		{
 			/* Q_UNLIKELY */ printf("QCommandLineParser: option not defined: \"%s\"", optionName.c_str());
-			return std::list<std::string>();
+			return std::vector<std::string>();
 		}
 
 		size_t index = (*it).second;
@@ -227,20 +227,20 @@ namespace header_tool
 		However, this does not apply to the dnslookup example, because it is a
 		console application.
 
-		\sa QCommandLineOption, QCoreApplication
+		\sa CommandLineOption, QCoreApplication
 	*/
 
 	/*!
 		Constructs a command line parser object.
 	*/
-	QCommandLineParser::QCommandLineParser()
-		: d(new QCommandLineParserPrivate)
+	CommandLineParser::CommandLineParser()
+		: d(new CommandLineParserPrivate)
 	{}
 
 	/*!
 		Destroys the command line parser object.
 	*/
-	QCommandLineParser::~QCommandLineParser()
+	CommandLineParser::~CommandLineParser()
 	{
 		delete d;
 	}
@@ -265,7 +265,7 @@ namespace header_tool
 		(uic, rcc...) have always been parsing arguments. This mode should be
 		used for preserving compatibility in applications that were parsing
 		arguments in such a way. There is an exception if the \c{a} option has the
-		QCommandLineOption::ShortOptionStyle flag set, in which case it is still
+		CommandLineOption::ShortOptionStyle flag set, in which case it is still
 		interpreted as \c{-a bc}.
 
 		\sa setSingleDashWordOptionMode()
@@ -275,7 +275,7 @@ namespace header_tool
 		Sets the parsing mode to \a singleDashWordOptionMode.
 		This must be called before process() or parse().
 	*/
-	void QCommandLineParser::setSingleDashWordOptionMode(QCommandLineParser::SingleDashWordOptionMode singleDashWordOptionMode)
+	void CommandLineParser::setSingleDashWordOptionMode(CommandLineParser::SingleDashWordOptionMode singleDashWordOptionMode)
 	{
 		d->singleDashWordOptionMode = singleDashWordOptionMode;
 	}
@@ -310,7 +310,7 @@ namespace header_tool
 		This must be called before process() or parse().
 		\since 5.6
 	*/
-	void QCommandLineParser::setOptionsAfterPositionalArgumentsMode(QCommandLineParser::OptionsAfterPositionalArgumentsMode parsingMode)
+	void CommandLineParser::setOptionsAfterPositionalArgumentsMode(CommandLineParser::OptionsAfterPositionalArgumentsMode parsingMode)
 	{
 		d->optionsAfterPositionalArgumentsMode = parsingMode;
 	}
@@ -323,9 +323,9 @@ namespace header_tool
 		Adding the option fails if there is no name attached to the option, or
 		the option has a name that clashes with an option name added before.
 	 */
-	bool QCommandLineParser::addOption(const QCommandLineOption &option)
+	bool CommandLineParser::addOption(const CommandLineOption &option)
 	{
-		const std::list<std::string> optionNames = option.names();
+		const std::vector<std::string> optionNames = option.names();
 
 		if (!optionNames.empty())
 		{
@@ -360,11 +360,11 @@ namespace header_tool
 
 		See the documentation for addOption() for when this function may fail.
 	*/
-	bool QCommandLineParser::addOptions(const std::list<QCommandLineOption> &options)
+	bool CommandLineParser::addOptions(const std::vector<CommandLineOption> &options)
 	{
 		// should be optimized (but it's no worse than what was possible before)
 		bool result = true;
-		for (std::list<QCommandLineOption>::const_iterator it = options.begin(), end = options.end(); it != end; ++it)
+		for (std::vector<CommandLineOption>::const_iterator it = options.begin(), end = options.end(); it != end; ++it)
 			result &= addOption(*it);
 		return result;
 	}
@@ -378,13 +378,13 @@ namespace header_tool
 
 		Returns the option instance, which can be used to call isSet().
 	*/
-	QCommandLineOption QCommandLineParser::addVersionOption()
+	CommandLineOption CommandLineParser::addVersionOption()
 	{
-		std::list<std::string> temp;
+		std::vector<std::string> temp;
 		temp.push_back("v");
 		temp.push_back("version");
 		temp.push_back("Displays version information.");
-		QCommandLineOption opt(std::move(temp));
+		CommandLineOption opt(std::move(temp));
 		addOption(opt);
 		d->builtinVersionOption = true;
 		return opt;
@@ -402,16 +402,16 @@ namespace header_tool
 
 		Returns the option instance, which can be used to call isSet().
 	*/
-	QCommandLineOption QCommandLineParser::addHelpOption()
+	CommandLineOption CommandLineParser::addHelpOption()
 	{
-		std::list<std::string> temp;
+		std::vector<std::string> temp;
 #ifdef Q_OS_WIN
 		temp.push_back("?")
 #endif
 		temp.push_back("h");
 		temp.push_back("help");
 		temp.push_back("Displays this help.");
-		QCommandLineOption opt(std::move(temp));
+		CommandLineOption opt(std::move(temp));
 		addOption(opt);
 		d->builtinHelpOption = true;
 		return opt;
@@ -420,7 +420,7 @@ namespace header_tool
 	/*!
 		Sets the application \a description shown by helpText().
 	*/
-	void QCommandLineParser::setApplicationDescription(const std::string &description)
+	void CommandLineParser::setApplicationDescription(const std::string &description)
 	{
 		d->description = description;
 	}
@@ -428,7 +428,7 @@ namespace header_tool
 	/*!
 		Returns the application description set in setApplicationDescription().
 	*/
-	std::string QCommandLineParser::applicationDescription() const
+	std::string CommandLineParser::applicationDescription() const
 	{
 		return d->description;
 	}
@@ -445,9 +445,9 @@ namespace header_tool
 
 		\sa addHelpOption(), helpText()
 	*/
-	void QCommandLineParser::addPositionalArgument(const std::string &name, const std::string &description, const std::string &syntax)
+	void CommandLineParser::addPositionalArgument(const std::string &name, const std::string &description, const std::string &syntax)
 	{
-		QCommandLineParserPrivate::PositionalArgumentDefinition arg;
+		CommandLineParserPrivate::PositionalArgumentDefinition arg;
 		arg.name = name;
 		arg.description = description;
 		arg.syntax = syntax.empty() ? name : syntax;
@@ -465,7 +465,7 @@ namespace header_tool
 		Example:
 		\snippet code/src_corelib_tools_qcommandlineparser.cpp 3
 	*/
-	void QCommandLineParser::clearPositionalArguments()
+	void CommandLineParser::clearPositionalArguments()
 	{
 		d->positionalArgumentDefinitions.clear();
 	}
@@ -489,7 +489,7 @@ namespace header_tool
 
 		\sa process()
 	*/
-	bool QCommandLineParser::parse(const std::list<std::string> &arguments)
+	bool CommandLineParser::parse(const std::vector<std::string> &arguments)
 	{
 		return d->parse(arguments);
 	}
@@ -498,7 +498,7 @@ namespace header_tool
 		Returns a translated error text for the user.
 		This should only be called when parse() returns \c false.
 	*/
-	std::string QCommandLineParser::errorText() const
+	std::string CommandLineParser::errorText() const
 	{
 		if (!d->errorText.empty())
 			return d->errorText;
@@ -568,7 +568,7 @@ namespace header_tool
 
 		\sa QCoreApplication::arguments(), parse()
 	 */
-	void QCommandLineParser::process(const std::list<std::string> &arguments)
+	void CommandLineParser::process(const std::vector<std::string> &arguments)
 	{
 		if (!d->parse(arguments))
 		{
@@ -603,7 +603,7 @@ namespace header_tool
 	}
 	*/
 
-	void QCommandLineParserPrivate::checkParsed(const char *method)
+	void CommandLineParserPrivate::checkParsed(const char *method)
 	{
 		if (needsParsing)
 			/* Q_UNLIKELY */ printf("QCommandLineParser: call process() or parse() before %s", method);
@@ -614,7 +614,7 @@ namespace header_tool
 		Looks up the option \a optionName (found on the command line) and register it as found.
 		Returns \c true on success.
 	 */
-	bool QCommandLineParserPrivate::registerFoundOption(const std::string &optionName)
+	bool CommandLineParserPrivate::registerFoundOption(const std::string &optionName)
 	{
 		if (nameHash.find(optionName) != nameHash.end())
 		{
@@ -640,15 +640,15 @@ namespace header_tool
 		\param argsEnd args.end(), to check if ++argumentIterator goes out of bounds
 		Returns \c true on success.
 	 */
-	bool QCommandLineParserPrivate::parseOptionValue(const std::string &optionName, const std::string &argument,
-		std::list<std::string>::const_iterator *argumentIterator, std::list<std::string>::const_iterator argsEnd)
+	bool CommandLineParserPrivate::parseOptionValue(const std::string &optionName, const std::string &argument,
+		std::vector<std::string>::const_iterator *argumentIterator, std::vector<std::string>::const_iterator argsEnd)
 	{
 		const char assignChar('=');
-		const NameHash_t::const_iterator nameHashIt = nameHash.find(optionName);
+		const std::unordered_map<std::string, int>::const_iterator nameHashIt = nameHash.find(optionName);
 		if (nameHashIt != nameHash.end())
 		{
 			const int assignPos = argument.find(assignChar);
-			const NameHash_t::mapped_type optionOffset = (*nameHashIt).second;
+			const std::unordered_map<std::string, int>::mapped_type optionOffset = (*nameHashIt).second;
 			const bool withValue = !commandLineOptionList.at(optionOffset).valueName().empty();
 			if (withValue)
 			{
@@ -690,7 +690,7 @@ namespace header_tool
 		The parser will not look for further options once it encounters the option
 		\c{--}; this does not include when \c{--} follows an option that requires a value.
 	 */
-	bool QCommandLineParserPrivate::parse(const std::list<std::string> &args)
+	bool CommandLineParserPrivate::parse(const std::vector<std::string> &args)
 	{
 		needsParsing = false;
 		bool error = false;
@@ -712,7 +712,7 @@ namespace header_tool
 			return false;
 		}
 
-		std::list<std::string>::const_iterator argumentIterator = args.begin();
+		std::vector<std::string>::const_iterator argumentIterator = args.begin();
 		++argumentIterator; // skip executable name
 
 		for (; argumentIterator != args.end(); ++argumentIterator)
@@ -757,7 +757,7 @@ namespace header_tool
 				}
 				switch (singleDashWordOptionMode)
 				{
-					case QCommandLineParser::ParseAsCompactedShortOptions:
+					case CommandLineParser::ParseAsCompactedShortOptions:
 						{
 							std::string optionName;
 							bool valueFound = false;
@@ -770,9 +770,9 @@ namespace header_tool
 								}
 								else
 								{
-									const NameHash_t::const_iterator nameHashIt = nameHash.find(optionName);
+									const std::unordered_map<std::string, int>::const_iterator nameHashIt = nameHash.find(optionName);
 									ASSERT(nameHashIt != nameHash.end()); // checked by registerFoundOption
-									const NameHash_t::mapped_type optionOffset = (*nameHashIt).second;
+									const std::unordered_map<std::string, int>::mapped_type optionOffset = (*nameHashIt).second;
 									const bool withValue = !commandLineOptionList.at(optionOffset).valueName().empty();
 									if (withValue)
 									{
@@ -793,7 +793,7 @@ namespace header_tool
 								error = true;
 							break;
 						}
-					case QCommandLineParser::ParseAsLongOptions:
+					case CommandLineParser::ParseAsLongOptions:
 						{
 							if (argument.size() > 2)
 							{
@@ -802,7 +802,7 @@ namespace header_tool
 								if (shortOptionIt != nameHash.end())
 								{
 									const auto &arg = commandLineOptionList.at((*shortOptionIt).second);
-									if (arg.flags & QCommandLineOption::ShortOptionStyle)
+									if (arg.flags & CommandLineOption::ShortOptionStyle)
 									{
 										registerFoundOption(possibleShortOptionStyleName);
 										optionValuesHash[(*shortOptionIt).second].push_back(sub(argument, 2));
@@ -832,7 +832,7 @@ namespace header_tool
 			else
 			{
 				positionalArgumentList.push_back(argument);
-				if (optionsAfterPositionalArgumentsMode == QCommandLineParser::ParseAsPositionalArguments)
+				if (optionsAfterPositionalArgumentsMode == CommandLineParser::ParseAsPositionalArguments)
 					forcePositional = true;
 			}
 			if (argumentIterator == args.end())
@@ -855,7 +855,7 @@ namespace header_tool
 		\snippet code/src_corelib_tools_qcommandlineparser.cpp 0
 	 */
 
-	bool QCommandLineParser::isSet(const std::string &name) const
+	bool CommandLineParser::isSet(const std::string &name) const
 	{
 		d->checkParsed("isSet");
 		if (std::find(d->optionNames.begin(), d->optionNames.end(), name) != d->optionNames.end())
@@ -863,7 +863,7 @@ namespace header_tool
 			return true;
 		}
 
-		const std::list<std::string> aliases = d->aliases(name);
+		const std::vector<std::string> aliases = d->aliases(name);
 		for (const std::string &optionName : d->optionNames)
 		{
 			if (std::find(aliases.begin(), aliases.end(), optionName) != aliases.end())
@@ -887,13 +887,13 @@ namespace header_tool
 
 		An empty string is returned if the option does not take a value.
 
-		\sa values(), QCommandLineOption::setDefaultValue(), QCommandLineOption::setDefaultValues()
+		\sa values(), CommandLineOption::setDefaultValue(), CommandLineOption::setDefaultValues()
 	 */
 
-	std::string QCommandLineParser::value(const std::string &optionName) const
+	std::string CommandLineParser::value(const std::string &optionName) const
 	{
 		d->checkParsed("value");
-		const std::list<std::string> valueList = values(optionName);
+		const std::vector<std::string> valueList = values(optionName);
 
 		if (!valueList.empty())
 			return valueList.back();
@@ -916,25 +916,25 @@ namespace header_tool
 
 		An empty list is returned if the option does not take a value.
 
-		\sa value(), QCommandLineOption::setDefaultValue(), QCommandLineOption::setDefaultValues()
+		\sa value(), CommandLineOption::setDefaultValue(), CommandLineOption::setDefaultValues()
 	 */
 
-	std::list<std::string> QCommandLineParser::values(const std::string &optionName) const
+	std::vector<std::string> CommandLineParser::values(const std::string &optionName) const
 	{
 		d->checkParsed("values");
-		const NameHash_t::const_iterator it = d->nameHash.find(optionName);
+		const std::unordered_map<std::string, int>::const_iterator it = d->nameHash.find(optionName);
 		if (it != d->nameHash.cend())
 		{
 			const int optionOffset = (*it).second;
-			std::list<std::string> values = d->optionValuesHash[optionOffset];
-			//std::list<std::string> values = d->optionValuesHash.value(optionOffset);
+			std::vector<std::string> values = d->optionValuesHash[optionOffset];
+			//std::vector<std::string> values = d->optionValuesHash.value(optionOffset);
 			if (values.empty())
 				values = d->commandLineOptionList.at(optionOffset).defaultValues();
 			return values;
 		}
 
 		/* Q_UNLIKELY */ printf("QCommandLineParser: option not defined: \"%s\"", optionName);
-		return std::list<std::string>();
+		return std::vector<std::string>();
 	}
 
 	/*!
@@ -948,7 +948,7 @@ namespace header_tool
 		Example:
 		\snippet code/src_corelib_tools_qcommandlineparser.cpp 1
 	*/
-	bool QCommandLineParser::isSet(const QCommandLineOption &option) const
+	bool CommandLineParser::isSet(const CommandLineOption &option) const
 	{
 		// option.names() might be empty if the constructor failed
 		const auto names = option.names();
@@ -966,9 +966,9 @@ namespace header_tool
 
 		An empty string is returned if the option does not take a value.
 
-		\sa values(), QCommandLineOption::setDefaultValue(), QCommandLineOption::setDefaultValues()
+		\sa values(), CommandLineOption::setDefaultValue(), CommandLineOption::setDefaultValues()
 	*/
-	std::string QCommandLineParser::value(const QCommandLineOption &option) const
+	std::string CommandLineParser::value(const CommandLineOption &option) const
 	{
 		return value(option.names().front());
 	}
@@ -984,9 +984,9 @@ namespace header_tool
 
 		An empty list is returned if the option does not take a value.
 
-		\sa value(), QCommandLineOption::setDefaultValue(), QCommandLineOption::setDefaultValues()
+		\sa value(), CommandLineOption::setDefaultValue(), CommandLineOption::setDefaultValues()
 	*/
-	std::list<std::string> QCommandLineParser::values(const QCommandLineOption &option) const
+	std::vector<std::string> CommandLineParser::values(const CommandLineOption &option) const
 	{
 		return values(option.names().front());
 	}
@@ -998,7 +998,7 @@ namespace header_tool
 		option.
 	 */
 
-	std::list<std::string> QCommandLineParser::positionalArguments() const
+	std::vector<std::string> CommandLineParser::positionalArguments() const
 	{
 		d->checkParsed("positionalArguments");
 		return d->positionalArgumentList;
@@ -1020,7 +1020,7 @@ namespace header_tool
 		\c values() to get any relevant option values.
 	 */
 
-	std::list<std::string> QCommandLineParser::optionNames() const
+	std::vector<std::string> CommandLineParser::optionNames() const
 	{
 		d->checkParsed("optionNames");
 		return d->optionNames;
@@ -1040,7 +1040,7 @@ namespace header_tool
 		\sa optionNames()
 	 */
 
-	std::list<std::string> QCommandLineParser::unknownOptionNames() const
+	std::vector<std::string> CommandLineParser::unknownOptionNames() const
 	{
 		d->checkParsed("unknownOptionNames");
 		return d->unknownOptionNames;
@@ -1056,7 +1056,7 @@ namespace header_tool
 		\sa addVersionOption()
 		\since 5.4
 	*/
-	Q_NORETURN void QCommandLineParser::showVersion()
+	Q_NORETURN void CommandLineParser::showVersion()
 	{
 		/*
 		showParserMessage(QCoreApplication::applicationName() + QLatin1Char(' ')
@@ -1078,7 +1078,7 @@ namespace header_tool
 
 		\sa helpText()
 	*/
-	Q_NORETURN void QCommandLineParser::showHelp(int exitCode)
+	Q_NORETURN void CommandLineParser::showHelp(int exitCode)
 	{
 		showParserMessage(d->helpText(), UsageMessage);
 		//qt_call_post_routines();
@@ -1090,7 +1090,7 @@ namespace header_tool
 
 		\sa showHelp()
 	*/
-	std::string QCommandLineParser::helpText() const
+	std::string CommandLineParser::helpText() const
 	{
 		return d->helpText();
 	}
@@ -1157,7 +1157,7 @@ namespace header_tool
 		return text;
 	}
 
-	std::string QCommandLineParserPrivate::helpText() const
+	std::string CommandLineParserPrivate::helpText() const
 	{
 		const char nl('\n');
 		std::string text;
@@ -1174,14 +1174,14 @@ namespace header_tool
 		text += nl;
 		if (!commandLineOptionList.empty())
 			text += "Options:" + nl;
-		std::list<std::string> optionNameList;
+		std::vector<std::string> optionNameList;
 		optionNameList.resize(commandLineOptionList.size());
 		size_t longestOptionNameString = 0;
-		for (const QCommandLineOption &option : commandLineOptionList)
+		for (const CommandLineOption &option : commandLineOptionList)
 		{
-			if (option.flags & QCommandLineOption::HiddenFromHelp)
+			if (option.flags & CommandLineOption::HiddenFromHelp)
 				continue;
-			const std::list<std::string> optionNames = option.names();
+			const std::vector<std::string> optionNames = option.names();
 			std::string optionNamesString;
 			for (const std::string &optionName : optionNames)
 			{
@@ -1198,9 +1198,9 @@ namespace header_tool
 		}
 		++longestOptionNameString;
 		auto optionNameIterator = optionNameList.cbegin();
-		for (const QCommandLineOption &option : commandLineOptionList)
+		for (const CommandLineOption &option : commandLineOptionList)
 		{
-			if (option.flags & QCommandLineOption::HiddenFromHelp)
+			if (option.flags & CommandLineOption::HiddenFromHelp)
 				continue;
 			text += wrapText(*optionNameIterator, longestOptionNameString, option.description());
 			++optionNameIterator;

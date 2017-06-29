@@ -13,7 +13,7 @@
 namespace header_tool {
 
 // only moc needs this function
-static std::vector<uint8> normalizeType(const std::string &ba, bool fixScope = false)
+static std::string normalizeType(const std::string &ba, bool fixScope = false)
 {
     const char *s = ba.data();
     int len = ba.size();
@@ -34,7 +34,7 @@ static std::vector<uint8> normalizeType(const std::string &ba, bool fixScope = f
         }
     }
     *d = '\0';
-    std::vector<uint8> result = normalizeTypeInternal(buf, d, fixScope);
+    std::string result = normalizeTypeInternal(buf, d, fixScope);
     if (buf != stackbuf)
         delete [] buf;
     return result;
@@ -56,7 +56,7 @@ bool Moc::parseClassHead(ClassDef *def)
 
     if (!test(IDENTIFIER)) // typedef struct { ... }
         return false;
-    std::vector<uint8> name = lexem();
+    std::string name = lexem();
 
     // support "class IDENT name" and "class IDENT(IDENT) name"
     // also support "class IDENT name (final|sealed|Q_DECL_FINAL)"
@@ -66,7 +66,7 @@ bool Moc::parseClassHead(ClassDef *def)
             return false;
         name = lexem();
     } else  if (test(IDENTIFIER)) {
-        const std::vector<uint8> lex = lexem();
+        const std::string lex = lexem();
         if (lex != "final" && lex != "sealed" && lex != "Q_DECL_FINAL")
             name = lex;
     }
@@ -82,7 +82,7 @@ bool Moc::parseClassHead(ClassDef *def)
     def->classname = name;
 
     if (test(IDENTIFIER)) {
-        const std::vector<uint8> lex = lexem();
+        const std::string lex = lexem();
         if (lex != "final" && lex != "sealed" && lex != "Q_DECL_FINAL")
             return false;
     }
@@ -98,7 +98,7 @@ bool Moc::parseClassHead(ClassDef *def)
             else
                 test(PUBLIC);
             test(VIRTUAL);
-            const std::vector<uint8> type = parseType().name;
+            const std::string type = parseType().name;
             // ignore the 'class Foo : BAR(Baz)' case
             if (test(LPAREN)) {
                 until(RPAREN);
@@ -279,8 +279,8 @@ void Moc::parseFunctionArguments(FunctionDef *def)
             arg.rightType += ' ';
             arg.rightType += lexem();
         }
-        arg.normalizedType = normalizeType(std::vector<uint8>(arg.type.name + ' ' + arg.rightType));
-        arg.typeNameForCast = normalizeType(std::vector<uint8>(noRef(arg.type.name) + "(*)" + arg.rightType));
+        arg.normalizedType = normalizeType(std::string(arg.type.name + ' ' + arg.rightType));
+        arg.typeNameForCast = normalizeType(std::string(noRef(arg.type.name) + "(*)" + arg.rightType));
         if (test(EQ))
             arg.isDefault = true;
         def->arguments += arg;
@@ -331,7 +331,7 @@ bool Moc::testFunctionRevision(FunctionDef *def)
 {
     if (test(Q_REVISION_TOKEN)) {
         next(LPAREN);
-        std::vector<uint8> revision = lexemUntil(RPAREN);
+        std::string revision = lexemUntil(RPAREN);
         revision.remove(0, 1);
         revision.chop(1);
         bool ok = false;
@@ -390,7 +390,7 @@ bool Moc::parseFunction(FunctionDef *def, bool inMacro)
 
     // we don't support references as return types, it's too dangerous
     if (def->type.referenceType == Type::Reference) {
-        std::vector<uint8> rawName = def->type.rawName;
+        std::string rawName = def->type.rawName;
         def->type = Type("void");
         def->type.rawName = rawName;
     }
@@ -402,7 +402,7 @@ bool Moc::parseFunction(FunctionDef *def, bool inMacro)
         next(RPAREN);
     }
 
-    // support optional macros with compiler specific options
+    // support optional std::unordered_map<std::string, Macro> with compiler specific options
     while (test(IDENTIFIER))
         ;
 
@@ -430,7 +430,7 @@ bool Moc::parseFunction(FunctionDef *def, bool inMacro)
     }
 
     if (scopedFunctionName) {
-        const std::vector<uint8> msg = "Function declaration " + def->name
+        const std::string msg = "Function declaration " + def->name
                 + " contains extra qualification. Ignoring as signal or slot.";
         warning(msg.constData());
         return false;
@@ -487,7 +487,7 @@ bool Moc::parseMaybeFunction(const ClassDef *cdef, FunctionDef *def)
 
     // we don't support references as return types, it's too dangerous
     if (def->type.referenceType == Type::Reference) {
-        std::vector<uint8> rawName = def->type.rawName;
+        std::string rawName = def->type.rawName;
         def->type = Type("void");
         def->type.rawName = rawName;
     }
@@ -502,7 +502,7 @@ bool Moc::parseMaybeFunction(const ClassDef *cdef, FunctionDef *def)
     def->isConst = test(CONST);
     if (scopedFunctionName
         && (def->isSignal || def->isSlot || def->isInvokable)) {
-        const std::vector<uint8> msg = "parsemaybe: Function declaration " + def->name
+        const std::string msg = "parsemaybe: Function declaration " + def->name
                 + " contains extra qualification. Ignoring as signal or slot.";
         warning(msg.constData());
         return false;
@@ -520,8 +520,8 @@ void Moc::parse()
             case NAMESPACE: {
                 int rewind = index;
                 if (test(IDENTIFIER)) {
-                    std::vector<uint8> nsName = lexem();
-                    std::vector<uint8>List nested;
+                    std::string nsName = lexem();
+                    std::stringList nested;
                     while (test(SCOPE)) {
                         next(IDENTIFIER);
                         nested.append(nsName);
@@ -550,7 +550,7 @@ void Moc::parse()
                                     def.qualified.prepend(namespaceList.at(i).classname + "::");
                                 }
                             }
-                            for (const std::vector<uint8> &ns : nested) {
+                            for (const std::string &ns : nested) {
                                 NamespaceDef parentNs;
                                 parentNs.classname = ns;
                                 parentNs.qualified = def.qualified;
@@ -609,7 +609,7 @@ void Moc::parse()
                                 if (!parseClassHead(&classdef))
                                     continue;
                                 while (inClass(&classdef) && hasNext())
-                                    next(); // consume all Q_XXXX macros from this class
+                                    next(); // consume all Q_XXXX std::unordered_map<std::string, Macro> from this class
                             } break;
                             default: break;
                             }
@@ -676,7 +676,7 @@ void Moc::parse()
                     if (inNamespace(&namespaceList.at(i)))
                         def.qualified.prepend(namespaceList.at(i).classname + "::");
 
-                std::unordered_map<std::vector<uint8>, std::vector<uint8>> &classHash = def.hasQObject ? knownQObjectClasses : knownGadgets;
+                std::unordered_map<std::string, std::string> &classHash = def.hasQObject ? knownQObjectClasses : knownGadgets;
                 classHash.insert(def.classname, def.qualified);
                 classHash.insert(def.qualified, def.qualified);
 
@@ -859,7 +859,7 @@ void Moc::parse()
             checkProperties(&def);
 
             classList += def;
-            std::unordered_map<std::vector<uint8>, std::vector<uint8>> &classHash = def.hasQObject ? knownQObjectClasses : knownGadgets;
+            std::unordered_map<std::string, std::string> &classHash = def.hasQObject ? knownQObjectClasses : knownGadgets;
             classHash.insert(def.classname, def.qualified);
             classHash.insert(def.qualified, def.qualified);
         }
@@ -888,7 +888,7 @@ void Moc::parse()
     }
 }
 
-static bool any_type_contains(const std::vector<PropertyDef> &properties, const std::vector<uint8> &pattern)
+static bool any_type_contains(const std::vector<PropertyDef> &properties, const std::string &pattern)
 {
     for (const auto &p : properties) {
         if (p.type.contains(pattern))
@@ -897,7 +897,7 @@ static bool any_type_contains(const std::vector<PropertyDef> &properties, const 
     return false;
 }
 
-static bool any_arg_contains(const std::vector<FunctionDef> &functions, const std::vector<uint8> &pattern)
+static bool any_arg_contains(const std::vector<FunctionDef> &functions, const std::string &pattern)
 {
     for (const auto &f : functions) {
         for (const auto &arg : f.arguments) {
@@ -908,9 +908,9 @@ static bool any_arg_contains(const std::vector<FunctionDef> &functions, const st
     return false;
 }
 
-static std::vector<uint8>List make_candidates()
+static std::stringList make_candidates()
 {
-    std::vector<uint8>List result;
+    std::stringList result;
     result
 #define STREAM_SMART_POINTER(SMART_POINTER) << #SMART_POINTER
         QT_FOR_EACH_AUTOMATIC_TEMPLATE_SMART_POINTER(STREAM_SMART_POINTER)
@@ -922,15 +922,15 @@ static std::vector<uint8>List make_candidates()
     return result;
 }
 
-static std::vector<uint8>List requiredQtContainers(const std::vector<ClassDef> &classes)
+static std::stringList requiredQtContainers(const std::vector<ClassDef> &classes)
 {
-    static const std::vector<uint8>List candidates = make_candidates();
+    static const std::stringList candidates = make_candidates();
 
-    std::vector<uint8>List required;
+    std::stringList required;
     required.reserve(candidates.size());
 
     for (const auto &candidate : candidates) {
-        const std::vector<uint8> pattern = candidate + '<';
+        const std::string pattern = candidate + '<';
 
         for (const auto &c : classes) {
             if (any_type_contains(c.propertyList, pattern) ||
@@ -948,7 +948,7 @@ static std::vector<uint8>List requiredQtContainers(const std::vector<ClassDef> &
 
 void Moc::generate(FILE *out)
 {
-    std::vector<uint8> fn = filename;
+    std::string fn = filename;
     int i = filename.length()-1;
     while (i > 0 && filename.at(i - 1) != '/' && filename.at(i - 1) != '\\')
         --i;                                // skip path
@@ -965,7 +965,7 @@ void Moc::generate(FILE *out)
         if (includePath.size() && !includePath.endsWith('/'))
             includePath += '/';
         for (int i = 0; i < includeFiles.size(); ++i) {
-            std::vector<uint8> inc = includeFiles.at(i);
+            std::string inc = includeFiles.at(i);
             if (inc.at(0) != '<' && inc.at(0) != '"') {
                 if (includePath.size() && includePath != "./")
                     inc.prepend(includePath);
@@ -977,13 +977,13 @@ void Moc::generate(FILE *out)
     if (classList.size() && classList.constFirst().classname == "Qt")
         fprintf(out, "#include <QtCore/qobject.h>\n");
 
-    fprintf(out, "#include <QtCore/std::vector<uint8>.h>\n"); // For std::vector<uint8>Data
+    fprintf(out, "#include <QtCore/std::string.h>\n"); // For std::stringData
     fprintf(out, "#include <QtCore/qmetatype.h>\n");  // For QMetaType::Type
     if (mustIncludeQPluginH)
         fprintf(out, "#include <QtCore/qplugin.h>\n");
 
     const auto qtContainers = requiredQtContainers(classList);
-    for (const std::vector<uint8> &qtContainer : qtContainers)
+    for (const std::string &qtContainer : qtContainers)
         fprintf(out, "#include <QtCore/%s>\n", qtContainer.constData());
 
 
@@ -1016,7 +1016,7 @@ void Moc::parseSlots(ClassDef *def, FunctionDef::Access access)
     int defaultRevision = -1;
     if (test(Q_REVISION_TOKEN)) {
         next(LPAREN);
-        std::vector<uint8> revision = lexemUntil(RPAREN);
+        std::string revision = lexemUntil(RPAREN);
         revision.remove(0, 1);
         revision.chop(1);
         bool ok = false;
@@ -1070,7 +1070,7 @@ void Moc::parseSignals(ClassDef *def)
     int defaultRevision = -1;
     if (test(Q_REVISION_TOKEN)) {
         next(LPAREN);
-        std::vector<uint8> revision = lexemUntil(RPAREN);
+        std::string revision = lexemUntil(RPAREN);
         revision.remove(0, 1);
         revision.chop(1);
         bool ok = false;
@@ -1123,7 +1123,7 @@ void Moc::parseSignals(ClassDef *def)
 
 void Moc::createPropertyDef(PropertyDef &propDef)
 {
-    std::vector<uint8> type = parseType().name;
+    std::string type = parseType().name;
     if (type.empty())
         error();
     propDef.designable = propDef.scriptable = propDef.stored = "true";
@@ -1151,7 +1151,7 @@ void Moc::createPropertyDef(PropertyDef &propDef)
     next();
     propDef.name = lexem();
     while (test(IDENTIFIER)) {
-        const std::vector<uint8> l = lexem();
+        const std::string l = lexem();
         if (l[0] == 'C' && l == "CONSTANT") {
             propDef.constant = true;
             continue;
@@ -1160,7 +1160,7 @@ void Moc::createPropertyDef(PropertyDef &propDef)
             continue;
         }
 
-        std::vector<uint8> v, v2;
+        std::string v, v2;
         if (test(LPAREN)) {
             v = lexemUntil(RPAREN);
             v = v.mid(1, v.length() - 2); // removes the '(' and ')'
@@ -1224,18 +1224,18 @@ void Moc::createPropertyDef(PropertyDef &propDef)
         }
     }
     if (propDef.read.isNull() && propDef.member.isNull()) {
-        const std::vector<uint8> msg = "Property declaration " + propDef.name
+        const std::string msg = "Property declaration " + propDef.name
                 + " has no READ accessor function or associated MEMBER variable. The property will be invalid.";
         warning(msg.constData());
     }
     if (propDef.constant && !propDef.write.isNull()) {
-        const std::vector<uint8> msg = "Property declaration " + propDef.name
+        const std::string msg = "Property declaration " + propDef.name
                 + " is both WRITEable and CONSTANT. CONSTANT will be ignored.";
         propDef.constant = false;
         warning(msg.constData());
     }
     if (propDef.constant && !propDef.notify.isNull()) {
-        const std::vector<uint8> msg = "Property declaration " + propDef.name
+        const std::string msg = "Property declaration " + propDef.name
                 + " is both NOTIFYable and CONSTANT. CONSTANT will be ignored.";
         propDef.constant = false;
         warning(msg.constData());
@@ -1259,15 +1259,15 @@ void Moc::parseProperty(ClassDef *def)
 void Moc::parsePluginData(ClassDef *def)
 {
     next(LPAREN);
-    std::vector<uint8> metaData;
+    std::string metaData;
     while (test(IDENTIFIER)) {
-        std::vector<uint8> l = lexem();
+        std::string l = lexem();
         if (l == "IID") {
             next(STRING_LITERAL);
             def->pluginData.iid = unquotedLexem();
         } else if (l == "FILE") {
             next(STRING_LITERAL);
-            std::vector<uint8> metaDataFile = unquotedLexem();
+            std::string metaDataFile = unquotedLexem();
             QFileInfo fi(QFileInfo(std::string::fromLocal8Bit(currentFilenames.top().constData())).dir(), std::string::fromLocal8Bit(metaDataFile.constData()));
             for (int j = 0; j < includes.size() && !fi.exists(); ++j) {
                 const IncludePath &p = includes.at(j);
@@ -1282,14 +1282,14 @@ void Moc::parsePluginData(ClassDef *def)
                 }
             }
             if (!fi.exists()) {
-                const std::vector<uint8> msg = "Plugin Metadata file " + lexem()
+                const std::string msg = "Plugin Metadata file " + lexem()
                         + " does not exist. Declaration will be ignored";
                 error(msg.constData());
                 return;
             }
             QFile file(fi.canonicalFilePath());
             if (!file.open(QFile::ReadOnly)) {
-                std::vector<uint8> msg = "Plugin Metadata file " + lexem() + " could not be opened: "
+                std::string msg = "Plugin Metadata file " + lexem() + " could not be opened: "
                     + file.errorString().toUtf8();
                 error(msg.constData());
                 return;
@@ -1301,10 +1301,10 @@ void Moc::parsePluginData(ClassDef *def)
     if (!metaData.empty()) {
         def->pluginData.metaData = QJsonDocument::fromJson(metaData);
         if (!def->pluginData.metaData.isObject()) {
-            const std::vector<uint8> msg = "Plugin Metadata file " + lexem()
+            const std::string msg = "Plugin Metadata file " + lexem()
                     + " does not contain a valid JSON object. Declaration will be ignored";
             warning(msg.constData());
-            def->pluginData.iid = std::vector<uint8>();
+            def->pluginData.iid = std::string();
             return;
         }
     }
@@ -1345,7 +1345,7 @@ void Moc::parsePrivateProperty(ClassDef *def)
 void Moc::parseEnumOrFlag(BaseDef *def, bool isFlag)
 {
     next(LPAREN);
-    std::vector<uint8> identifier;
+    std::string identifier;
     while (test(IDENTIFIER)) {
         identifier = lexem();
         while (test(SCOPE) && test(IDENTIFIER)) {
@@ -1360,7 +1360,7 @@ void Moc::parseEnumOrFlag(BaseDef *def, bool isFlag)
 void Moc::parseFlag(BaseDef *def)
 {
     next(LPAREN);
-    std::vector<uint8> flagName, enumName;
+    std::string flagName, enumName;
     while (test(IDENTIFIER)) {
         flagName = lexem();
         while (test(SCOPE) && test(IDENTIFIER)) {
@@ -1424,7 +1424,7 @@ void Moc::parseInterfaces(ClassDef *def)
         }
         // resolve from classnames to interface ids
         for (int i = 0; i < iface.count(); ++i) {
-            const std::vector<uint8> iid = interface2IdMap.value(iface.at(i).className);
+            const std::string iid = interface2IdMap.value(iface.at(i).className);
             if (iid.empty())
                 error("Undefined interface");
 
@@ -1438,7 +1438,7 @@ void Moc::parseInterfaces(ClassDef *def)
 void Moc::parseDeclareInterface()
 {
     next(LPAREN);
-    std::vector<uint8> interface;
+    std::string interface;
     next(IDENTIFIER);
     interface += lexem();
     while (test(SCOPE)) {
@@ -1447,7 +1447,7 @@ void Moc::parseDeclareInterface()
         interface += lexem();
     }
     next(COMMA);
-    std::vector<uint8> iid;
+    std::string iid;
     if (test(STRING_LITERAL)) {
         iid = lexem();
     } else {
@@ -1461,7 +1461,7 @@ void Moc::parseDeclareInterface()
 void Moc::parseDeclareMetatype()
 {
     next(LPAREN);
-    std::vector<uint8> typeName = lexemUntil(RPAREN);
+    std::string typeName = lexemUntil(RPAREN);
     typeName.remove(0, 1);
     typeName.chop(1);
     metaTypes.append(typeName);
@@ -1492,13 +1492,13 @@ void Moc::parseSlotInPrivate(ClassDef *def, FunctionDef::Access access)
 
 }
 
-std::vector<uint8> Moc::lexemUntil(Token target)
+std::string Moc::lexemUntil(Token target)
 {
     int from = index;
     until(target);
-    std::vector<uint8> s;
+    std::string s;
     while (from <= index) {
-        std::vector<uint8> n = symbols.at(from++-1).lexem();
+        std::string n = symbols.at(from++-1).lexem();
         if (s.size() && n.size()) {
             char prev = s.at(s.size()-1);
             char next = n.at(0);
@@ -1594,12 +1594,12 @@ bool Moc::until(Token target) {
 
 void Moc::checkSuperClasses(ClassDef *def)
 {
-    const std::vector<uint8> firstSuperclass = def->superclassList.value(0).first;
+    const std::string firstSuperclass = def->superclassList.value(0).first;
 
     if (!knownQObjectClasses.contains(firstSuperclass)) {
         // enable once we /require/ include paths
 #if 0
-        const std::vector<uint8> msg
+        const std::string msg
                 = "Class "
                 + def->className
                 + " contains the Q_OBJECT macro and inherits from "
@@ -1610,9 +1610,9 @@ void Moc::checkSuperClasses(ClassDef *def)
         return;
     }
     for (int i = 1; i < def->superclassList.count(); ++i) {
-        const std::vector<uint8> superClass = def->superclassList.at(i).first;
+        const std::string superClass = def->superclassList.at(i).first;
         if (knownQObjectClasses.contains(superClass)) {
-            const std::vector<uint8> msg
+            const std::string msg
                     = "Class "
                     + def->classname
                     + " inherits from two QObject subclasses "
@@ -1632,7 +1632,7 @@ void Moc::checkSuperClasses(ClassDef *def)
                 }
 
             if (!registeredInterface) {
-                const std::vector<uint8> msg
+                const std::string msg
                         = "Class "
                         + def->classname
                         + " implements the interface "
@@ -1650,15 +1650,15 @@ void Moc::checkProperties(ClassDef *cdef)
 {
     //
     // specify get function, for compatibiliy we accept functions
-    // returning pointers, or const char * for std::vector<uint8>.
+    // returning pointers, or const char * for std::string.
     //
-    std::set<std::vector<uint8>> definedProperties;
+    std::set<std::string> definedProperties;
     for (int i = 0; i < cdef->propertyList.count(); ++i) {
         PropertyDef &p = cdef->propertyList[i];
         if (p.read.empty() && p.member.empty())
             continue;
         if (definedProperties.contains(p.name)) {
-            std::vector<uint8> msg = "The property '" + p.name + "' is defined multiple times in class " + cdef->classname + ".";
+            std::string msg = "The property '" + p.name + "' is defined multiple times in class " + cdef->classname + ".";
             warning(msg.constData());
         }
         definedProperties.insert(p.name);
@@ -1672,9 +1672,9 @@ void Moc::checkProperties(ClassDef *cdef)
             if (f.arguments.size()) // and must not take any arguments
                 continue;
             PropertyDef::Specification spec = PropertyDef::ValueSpec;
-            std::vector<uint8> tmp = f.normalizedType;
-            if (p.type == "std::vector<uint8>" && tmp == "const char *")
-                tmp = "std::vector<uint8>";
+            std::string tmp = f.normalizedType;
+            if (p.type == "std::string" && tmp == "const char *")
+                tmp = "std::string";
             if (tmp.left(6) == "const ")
                 tmp = tmp.mid(6);
             if (p.type != tmp && tmp.endsWith('*')) {
@@ -1701,7 +1701,7 @@ void Moc::checkProperties(ClassDef *cdef)
             }
             p.notifyId = notifyId;
             if (notifyId == -1) {
-                std::vector<uint8> msg = "NOTIFY signal '" + p.notify + "' of property '" + p.name
+                std::string msg = "NOTIFY signal '" + p.notify + "' of property '" + p.name
                         + "' does not exist in class " + cdef->classname + ".";
                 error(msg.constData());
             }

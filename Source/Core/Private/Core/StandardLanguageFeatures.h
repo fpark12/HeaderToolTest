@@ -1,13 +1,12 @@
 #pragma once
 
 // C Standard Libraries
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <stdint.h>
-
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cstdarg>
+#include <cstdint>
 #include <cctype>
 
 
@@ -22,13 +21,21 @@
 #include <deque>
 #include <stack>
 #include <list>
+#include <unordered_set>
 #include <set>
+#include <unordered_map>
 #include <map>
 // --- Utility ---
 #include <functional>
 #include <memory>
 #include <utility>
 #include <string>
+#include <experimental/filesystem>
+namespace std
+{
+	namespace filesystem = experimental::filesystem;
+}
+
 // --- Threading ---
 #include <thread>
 #include <condition_variable>

@@ -10,7 +10,7 @@ namespace header_tool
 }
 
 #if 0
-#include <std::list<std::string>.h>
+#include <std::vector<std::string>.h>
 #include <qfile.h>
 #include <qdir.h>
 #include <qfileinfo.h>
@@ -30,9 +30,9 @@ namespace header_tool
 // transform \r\n into \n
 // \r into \n (os9 style)
 // backslash-newlines into newlines
-	static std::vector<uint8> cleaned(const std::vector<uint8> &input)
+	static std::string cleaned(const std::string &input)
 	{
-		std::vector<uint8> result;
+		std::string result;
 		result.resize(input.size());
 		const char *data = input.constData();
 		const char *end = input.constData() + input.size();
@@ -487,7 +487,7 @@ namespace header_tool
 							symbols.emplace_back(lineNum, token, input, lexem - begin, data - lexem);
 							// make sure we explicitly add the whitespace here if the next char
 							// is not an opening brace, so we can distinguish correctly between
-							// regular and function macros
+							// regular and function std::unordered_map<std::string, Macro>
 							if (*data != '(')
 								symbols.emplace_back(lineNum, WHITESPACE);
 							mode = TokenizeDefine;
@@ -568,7 +568,7 @@ namespace header_tool
 
 #if 0
 	void Preprocessor::macroExpand(Symbols *into, Preprocessor *that, const Symbols &toExpand, int &index,
-		int lineNum, bool one, const std::set<std::vector<uint8>> &excludeSymbols)
+		int lineNum, bool one, const std::set<std::string> &excludeSymbols)
 	{
 		SymbolStack symbols;
 		SafeSymbols sf;
@@ -582,7 +582,7 @@ namespace header_tool
 
 		for (;;)
 		{
-			std::vector<uint8> macro;
+			std::string macro;
 			Symbols newSyms = macroExpandIdentifier(that, symbols, lineNum, &macro);
 
 			if (macro.empty())
@@ -612,18 +612,18 @@ namespace header_tool
 	}
 
 
-	Symbols Preprocessor::macroExpandIdentifier(Preprocessor *that, SymbolStack &symbols, int lineNum, std::vector<uint8> *macroName)
+	Symbols Preprocessor::macroExpandIdentifier(Preprocessor *that, SymbolStack &symbols, int lineNum, std::string *std::string)
 	{
 		Symbol s = symbols.symbol();
 
 		// not a macro
-		if (s.token != PP_IDENTIFIER || !that->macros.contains(s) || symbols.dontReplaceSymbol(s.lexem()))
+		if (s.token != PP_IDENTIFIER || !that->std::unordered_map<std::string, Macro>.contains(s) || symbols.dontReplaceSymbol(s.lexem()))
 		{
 			return Symbols();
 		}
 
-		const Macro &macro = that->macros.value(s);
-		*macroName = s.lexem();
+		const Macro &macro = that->std::unordered_map<std::string, Macro>.value(s);
+		*std::string = s.lexem();
 
 		Symbols expansion;
 		if (!macro.isFunction)
@@ -639,7 +639,7 @@ namespace header_tool
 			}
 			if (!symbols.test(PP_LPAREN))
 			{
-				*macroName = std::vector<uint8>();
+				*std::string = std::string();
 				Symbols syms;
 				if (haveSpace)
 					syms += Symbol(lineNum, PP_WHITESPACE);
@@ -741,7 +741,7 @@ namespace header_tool
 					}
 
 					const Symbols &arg = arguments.at(index);
-					std::vector<uint8> stringified;
+					std::string stringified;
 					for (int i = 0; i < arg.size(); ++i)
 					{
 						stringified += arg.at(i).lexem();
@@ -776,7 +776,7 @@ namespace header_tool
 					{
 						Symbol last = expansion.takeLast();
 
-						std::vector<uint8> lexem = last.lexem() + next.lexem();
+						std::string lexem = last.lexem() + next.lexem();
 						expansion += Symbol(lineNum, last.token, lexem);
 					}
 					else
@@ -815,7 +815,7 @@ namespace header_tool
 				bool braces = test(PP_LPAREN);
 				next(PP_IDENTIFIER);
 				Symbol definedOrNotDefined = symbol();
-				definedOrNotDefined.token = macros.contains(definedOrNotDefined) ? PP_MOC_TRUE : PP_MOC_FALSE;
+				definedOrNotDefined.token = std::unordered_map<std::string, Macro>.contains(definedOrNotDefined) ? PP_MOC_TRUE : PP_MOC_FALSE;
 				substituted += definedOrNotDefined;
 				if (braces)
 					test(PP_RPAREN);
@@ -1068,11 +1068,11 @@ namespace header_tool
 		return expression.value();
 	}
 
-	static std::vector<uint8> readOrMapFile(QFile *file)
+	static std::string readOrMapFile(QFile *file)
 	{
 		const qint64 size = file->size();
 		char *rawInput = reinterpret_cast<char*>(file->map(0, size));
-		return rawInput ? std::vector<uint8>::fromRawData(rawInput, size) : file->readAll();
+		return rawInput ? std::string::fromRawData(rawInput, size) : file->readAll();
 	}
 
 	static void mergeStringLiterals(Symbols *_symbols)
@@ -1089,8 +1089,8 @@ namespace header_tool
 
 				if (literalsLength != mergeSymbol->len)
 				{
-					std::vector<uint8> mergeSymbolOriginalLexem = mergeSymbol->unquotedLexem();
-					std::vector<uint8> &mergeSymbolLexem = mergeSymbol->lex;
+					std::string mergeSymbolOriginalLexem = mergeSymbol->unquotedLexem();
+					std::string &mergeSymbolLexem = mergeSymbol->lex;
 					mergeSymbolLexem.resize(0);
 					mergeSymbolLexem.reserve(literalsLength);
 					mergeSymbolLexem.append('"');
@@ -1108,8 +1108,8 @@ namespace header_tool
 		}
 	}
 
-	static std::vector<uint8> searchIncludePaths(const std::list<Parser::IncludePath> &includepaths,
-		const std::vector<uint8> &include)
+	static std::string searchIncludePaths(const std::vector<Parser::IncludePath> &includepaths,
+		const std::string &include)
 	{
 		QFileInfo fi;
 		for (int j = 0; j < includepaths.size() && !fi.exists(); ++j)
@@ -1137,11 +1137,11 @@ namespace header_tool
 		}
 
 		if (!fi.exists() || fi.isDir())
-			return std::vector<uint8>();
+			return std::string();
 		return fi.canonicalFilePath().toLocal8Bit();
 	}
 
-	std::vector<uint8> Preprocessor::resolveInclude(const std::vector<uint8> &include, const std::vector<uint8> &relativeTo)
+	std::string Preprocessor::resolveInclude(const std::string &include, const std::string &relativeTo)
 	{
 		if (!relativeTo.empty())
 		{
@@ -1157,7 +1157,7 @@ namespace header_tool
 		return it.value();
 	}
 
-	void Preprocessor::preprocess(const std::vector<uint8> &filename, Symbols &preprocessed)
+	void Preprocessor::preprocess(const std::string &filename, Symbols &preprocessed)
 	{
 		currentFilenames.push(filename);
 		preprocessed.reserve(preprocessed.size() + symbols.size());
@@ -1170,7 +1170,7 @@ namespace header_tool
 				case PP_INCLUDE:
 					{
 						int lineNum = symbol().lineNum;
-						std::vector<uint8> include;
+						std::string include;
 						bool local = false;
 						if (test(PP_STRING_LITERAL))
 						{
@@ -1181,7 +1181,7 @@ namespace header_tool
 							continue;
 						until(PP_NEWLINE);
 
-						include = resolveInclude(include, local ? filename : std::vector<uint8>());
+						include = resolveInclude(include, local ? filename : std::string());
 						if (include.isNull())
 							continue;
 
@@ -1193,7 +1193,7 @@ namespace header_tool
 						if (!file.open(QFile::ReadOnly))
 							continue;
 
-						std::vector<uint8> input = readOrMapFile(&file);
+						std::string input = readOrMapFile(&file);
 
 						file.close();
 						if (input.empty())
@@ -1211,7 +1211,7 @@ namespace header_tool
 
 						index = 0;
 
-						// phase 3: preprocess conditions and substitute macros
+						// phase 3: preprocess conditions and substitute std::unordered_map<std::string, Macro>
 						preprocessed += Symbol(0, MOC_INCLUDE_BEGIN, include);
 						preprocess(include, preprocessed);
 						preprocessed += Symbol(lineNum, MOC_INCLUDE_END, include);
@@ -1223,7 +1223,7 @@ namespace header_tool
 				case PP_DEFINE:
 					{
 						next();
-						std::vector<uint8> name = lexem();
+						std::string name = lexem();
 						if (name.empty() || !is_ident_start(name[0]))
 							error();
 						Macro macro;
@@ -1277,20 +1277,20 @@ namespace header_tool
 								error("'##' cannot appear at either end of a macro expansion");
 							}
 						}
-						macros.insert(name, macro);
+						std::unordered_map<std::string, Macro>.insert(name, macro);
 						continue;
 					}
 				case PP_UNDEF:
 					{
 						next();
-						std::vector<uint8> name = lexem();
+						std::string name = lexem();
 						until(PP_NEWLINE);
-						macros.remove(name);
+						std::unordered_map<std::string, Macro>.remove(name);
 						continue;
 					}
 				case PP_IDENTIFIER:
 					{
-						// substitute macros
+						// substitute std::unordered_map<std::string, Macro>
 						macroExpand(&preprocessed, this, symbols, index, symbol().lineNum, true);
 						continue;
 					}
@@ -1327,7 +1327,7 @@ namespace header_tool
 				case SLOTS:
 					{
 						Symbol sym = symbol();
-						if (macros.contains("QT_NO_KEYWORDS"))
+						if (std::unordered_map<std::string, Macro>.contains("QT_NO_KEYWORDS"))
 							sym.token = IDENTIFIER;
 						else
 							sym.token = (token == SIGNALS ? Q_SIGNALS_TOKEN : Q_SLOTS_TOKEN);
@@ -1342,9 +1342,9 @@ namespace header_tool
 		currentFilenames.pop();
 	}
 
-	Symbols Preprocessor::preprocessed(const std::vector<uint8> &filename, QFile *file)
+	Symbols Preprocessor::preprocessed(const std::string &filename, QFile *file)
 	{
-		std::vector<uint8> input = readOrMapFile(file);
+		std::string input = readOrMapFile(file);
 
 		if (input.empty())
 			return symbols;
@@ -1364,7 +1364,7 @@ namespace header_tool
 				tokenTypeName(symbols[j].token));
 #endif
 
-		// phase 3: preprocess conditions and substitute macros
+		// phase 3: preprocess conditions and substitute std::unordered_map<std::string, Macro>
 		Symbols result;
 		// Preallocate some space to speed up the code below.
 		// The magic value was found by logging the final size
@@ -1397,7 +1397,7 @@ namespace header_tool
 				break;
 			if (t != PP_IDENTIFIER)
 			{
-				std::vector<uint8> l = lexem();
+				std::string l = lexem();
 				if (l == "...")
 				{
 					m->isVariadic = true;

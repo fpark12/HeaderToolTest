@@ -1,10 +1,10 @@
 #ifndef QCOMMANDLINEPARSER_H
 #define QCOMMANDLINEPARSER_H
 
-//#include <QtCore/std::list<std::string>.h>
+//#include <QtCore/std::vector<std::string>.h>
 
 //#include <QtCore/qcoreapplication.h>
-#include <qcommandlineoption.h>
+#include <commandlineoption.h>
 
 //QT_REQUIRE_CONFIG(commandlineparser);
 
@@ -13,15 +13,15 @@
 namespace header_tool
 {
 
-	class QCommandLineParserPrivate;
+	class CommandLineParserPrivate;
 	//class QCoreApplication;
 
-	class Q_CORE_EXPORT QCommandLineParser
+	class Q_CORE_EXPORT CommandLineParser
 	{
 		//Q_DECLARE_TR_FUNCTIONS(QCommandLineParser)
 	public:
-		QCommandLineParser();
-		~QCommandLineParser();
+		CommandLineParser();
+		~CommandLineParser();
 
 		enum SingleDashWordOptionMode
 		{
@@ -37,33 +37,33 @@ namespace header_tool
 		};
 		void setOptionsAfterPositionalArgumentsMode(OptionsAfterPositionalArgumentsMode mode);
 
-		bool addOption(const QCommandLineOption &commandLineOption);
-		bool addOptions(const std::list<QCommandLineOption> &options);
+		bool addOption(const CommandLineOption &commandLineOption);
+		bool addOptions(const std::vector<CommandLineOption> &options);
 
-		QCommandLineOption addVersionOption();
-		QCommandLineOption addHelpOption();
+		CommandLineOption addVersionOption();
+		CommandLineOption addHelpOption();
 		void setApplicationDescription(const std::string &description);
 		std::string applicationDescription() const;
 		void addPositionalArgument(const std::string &name, const std::string &description, const std::string &syntax = std::string());
 		void clearPositionalArguments();
 
-		void process(const std::list<std::string> &arguments);
+		void process(const std::vector<std::string> &arguments);
 		//void process(const QCoreApplication &app);
 
-		bool parse(const std::list<std::string> &arguments);
+		bool parse(const std::vector<std::string> &arguments);
 		std::string errorText() const;
 
 		bool isSet(const std::string &name) const;
 		std::string value(const std::string &name) const;
-		std::list<std::string> values(const std::string &name) const;
+		std::vector<std::string> values(const std::string &name) const;
 
-		bool isSet(const QCommandLineOption &option) const;
-		std::string value(const QCommandLineOption &option) const;
-		std::list<std::string> values(const QCommandLineOption &option) const;
+		bool isSet(const CommandLineOption &option) const;
+		std::string value(const CommandLineOption &option) const;
+		std::vector<std::string> values(const CommandLineOption &option) const;
 
-		std::list<std::string> positionalArguments() const;
-		std::list<std::string> optionNames() const;
-		std::list<std::string> unknownOptionNames() const;
+		std::vector<std::string> positionalArguments() const;
+		std::vector<std::string> optionNames() const;
+		std::vector<std::string> unknownOptionNames() const;
 
 		Q_NORETURN void showVersion();
 		Q_NORETURN void showHelp(int exitCode = 0);
@@ -71,9 +71,9 @@ namespace header_tool
 
 	private:
 		//Q_DISABLE_COPY(QCommandLineParser)
-		QCommandLineParser(QCommandLineParser&) = delete;
+		CommandLineParser(CommandLineParser&) = delete;
 
-		QCommandLineParserPrivate * const d;
+		CommandLineParserPrivate * const d;
 	};
 
 }

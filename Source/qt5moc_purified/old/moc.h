@@ -2,7 +2,7 @@
 #define MOC_H
 
 #include "parser.h"
-//#include <std::list<std::string>.h>
+//#include <std::vector<std::string>.h>
 #include <map>
 #include <tuple>
 //#include <qjsondocument.h>
@@ -48,12 +48,12 @@ namespace header_tool
 			: name(_name), rawName(name), isVolatile(false), isScoped(false), firstToken(NOTOKEN), referenceType(NoReference)
 		{}
 		std::string name;
-		//std::vector<uint8> name;
+		//std::string name;
 		
 		//When used as a return type, the type name may be modified to remove the references.
 		// rawName is the type as found in the function signature
 		std::string rawName;
-		//std::vector<uint8> rawName;
+		//std::string rawName;
 		uint32 isVolatile : 1;
 		uint32 isScoped : 1;
 		Token firstToken;
@@ -63,8 +63,8 @@ namespace header_tool
 
 	struct EnumDef
 	{
-		std::vector<uint8> name;
-		std::list<std::vector<uint8>> values;
+		std::string name;
+		std::vector<std::string> values;
 		bool isEnumClass; // c++11 enum class
 		EnumDef() : isEnumClass(false)
 		{}
@@ -76,8 +76,8 @@ namespace header_tool
 		ArgumentDef() : isDefault(false)
 		{}
 		Type type;
-		std::vector<uint8> rightType, normalizedType, name;
-		std::vector<uint8> typeNameForCast; // type name to be used in cast from void * in metacall
+		std::string rightType, normalizedType, name;
+		std::string typeNameForCast; // type name to be used in cast from void * in metacall
 		bool isDefault;
 	};
 	//Q_DECLARE_TYPEINFO(ArgumentDef, Q_MOVABLE_TYPE);
@@ -90,9 +90,9 @@ namespace header_tool
 			isConstructor(false), isDestructor(false), isAbstract(false), revision(0)
 		{}
 		Type type;
-		std::vector<uint8> normalizedType;
-		std::vector<uint8> tag;
-		std::vector<uint8> name;
+		std::string normalizedType;
+		std::string tag;
+		std::string name;
 		bool returnTypeIsVolatile;
 
 		std::vector<ArgumentDef> arguments;
@@ -108,7 +108,7 @@ namespace header_tool
 		bool inlineCode;
 		bool wasCloned;
 
-		std::vector<uint8> inPrivateClass;
+		std::string inPrivateClass;
 		bool isCompat;
 		bool isInvokable;
 		bool isScriptable;
@@ -150,36 +150,36 @@ namespace header_tool
 
 	struct ClassInfoDef
 	{
-		std::vector<uint8> name;
-		std::vector<uint8> value;
+		std::string name;
+		std::string value;
 	};
 	//Q_DECLARE_TYPEINFO(ClassInfoDef, Q_MOVABLE_TYPE);
 
 	struct BaseDef
 	{
-		std::vector<uint8> classname;
-		std::vector<uint8> qualified;
+		std::string classname;
+		std::string qualified;
 		std::vector<ClassInfoDef> classInfoList;
-		std::map<std::vector<uint8>, bool> enumDeclarations;
+		std::map<std::string, bool> enumDeclarations;
 		std::vector<EnumDef> enumList;
-		std::map<std::vector<uint8>, std::vector<uint8>> flagAliases;
+		std::map<std::string, std::string> flagAliases;
 		int begin = 0;
 		int end = 0;
 	};
 
 	struct ClassDef : BaseDef
 	{
-		std::vector<std::tuple<std::vector<uint8>, FunctionDef::Access> > superclassList;
+		std::vector<std::tuple<std::string, FunctionDef::Access> > superclassList;
 
 		struct Interface
 		{
 			Interface()
 			{} // for std::vector, don't use
-			inline explicit Interface(const std::vector<uint8> &_className)
+			inline explicit Interface(const std::string &_className)
 				: className(_className)
 			{}
-			std::vector<uint8> className;
-			std::vector<uint8> interfaceId;
+			std::string className;
+			std::string interfaceId;
 		};
 		std::vector<std::vector<Interface> >interfaceList;
 
@@ -188,7 +188,7 @@ namespace header_tool
 
 		struct PluginData
 		{
-			std::vector<uint8> iid;
+			std::string iid;
 			// TODO:
 			//std::map<std::string, QJsonArray> metaArgs;
 			//QJsonDocument metaData;
@@ -218,18 +218,18 @@ namespace header_tool
 			: noInclude(false), mustIncludeQPluginH(false)
 		{}
 
-		std::vector<uint8> filename;
+		std::string filename;
 
 		bool noInclude;
 		bool mustIncludeQPluginH;
 		std::string includePath;
-		std::list<std::string> includeFiles;
+		std::vector<std::string> includeFiles;
 		std::vector<ClassDef> classList;
-		std::map<std::vector<uint8>, std::vector<uint8>> interface2IdMap;
-		std::list<std::vector<uint8>> metaTypes;
+		std::map<std::string, std::string> interface2IdMap;
+		std::vector<std::string> metaTypes;
 		// map from class name to fully qualified name
-		std::unordered_map<std::string, std::vector<uint8>> knownQObjectClasses;
-		std::unordered_map<std::string, std::vector<uint8>> knownGadgets;
+		std::unordered_map<std::string, std::string> knownQObjectClasses;
+		std::unordered_map<std::string, std::string> knownGadgets;
 		// TODO:
 		// std::map<std::string, QJsonArray> metaArgs;
 
@@ -270,7 +270,7 @@ namespace header_tool
 
 		void parseFunctionArguments(FunctionDef *def);
 
-		std::vector<uint8> lexemUntil(Token);
+		std::string lexemUntil(Token);
 		bool until(Token);
 
 		// test for Q_INVOCABLE, Q_SCRIPTABLE, etc. and set the flags

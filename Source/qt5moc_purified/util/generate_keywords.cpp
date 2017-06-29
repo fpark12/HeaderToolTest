@@ -253,7 +253,7 @@ struct State
 		memset(next, 0, sizeof(next));
 	}
 	std::string token;
-	//std::vector<uint8> token;
+	//std::string token;
 	int next[128];
 	int nextindex;
 

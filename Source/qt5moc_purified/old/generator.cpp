@@ -14,7 +14,7 @@
 
 namespace header_tool {
 
-uint32 nameToBuiltinType(const std::vector<uint8> &name)
+uint32 nameToBuiltinType(const std::string &name)
 {
     if (name.empty())
         return 0;
@@ -26,7 +26,7 @@ uint32 nameToBuiltinType(const std::vector<uint8> &name)
 /*
   Returns \c true if the type is a built-in type.
 */
-bool isBuiltinType(const std::vector<uint8> &type)
+bool isBuiltinType(const std::string &type)
  {
     int id = QMetaType::type(type.constData());
     if (id == QMetaType::UnknownType)
@@ -46,7 +46,7 @@ QT_FOR_EACH_STATIC_TYPE(RETURN_METATYPENAME_STRING)
     return 0;
  }
 
-Generator::Generator(ClassDef *classDef, const std::list<std::vector<uint8>> &metaTypes, const std::unordered_map<std::vector<uint8>, std::vector<uint8>> &knownQObjectClasses, const std::unordered_map<std::vector<uint8>, std::vector<uint8>> &knownGadgets, FILE *outfile)
+Generator::Generator(ClassDef *classDef, const std::vector<std::string> &metaTypes, const std::unordered_map<std::string, std::string> &knownQObjectClasses, const std::unordered_map<std::string, std::string> &knownGadgets, FILE *outfile)
     : out(outfile), cdef(classDef), metaTypes(metaTypes), knownQObjectClasses(knownQObjectClasses)
     , knownGadgets(knownGadgets)
 {
@@ -54,7 +54,7 @@ Generator::Generator(ClassDef *classDef, const std::list<std::vector<uint8>> &me
         purestSuperClass = cdef->superclassList.constFirst().first;
 }
 
-static inline int lengthOfEscapeSequence(const std::vector<uint8> &s, int i)
+static inline int lengthOfEscapeSequence(const std::string &s, int i)
 {
     if (s.at(i) != '\\' || i >= s.length() - 1)
         return 1;
@@ -77,13 +77,13 @@ static inline int lengthOfEscapeSequence(const std::vector<uint8> &s, int i)
     return i - startPos;
 }
 
-void Generator::strreg(const std::vector<uint8> &s)
+void Generator::strreg(const std::string &s)
 {
     if (!strings.contains(s))
         strings.append(s);
 }
 
-int Generator::stridx(const std::vector<uint8> &s)
+int Generator::stridx(const std::string &s)
 {
     int i = strings.indexOf(s);
     Q_ASSERT_X(i != -1, Q_FUNC_INFO, "We forgot to register some strings");
@@ -101,13 +101,13 @@ static int aggregateParameterCount(const std::vector<FunctionDef> &list)
     return sum;
 }
 
-bool Generator::registerableMetaType(const std::vector<uint8> &propertyType)
+bool Generator::registerableMetaType(const std::string &propertyType)
 {
     if (metaTypes.contains(propertyType))
         return true;
 
     if (propertyType.endsWith('*')) {
-        std::vector<uint8> objectPointerType = propertyType;
+        std::string objectPointerType = propertyType;
         // The objects container stores class names, such as 'QState', 'QLabel' etc,
         // not 'QState*', 'QLabel*'. The propertyType does contain the '*', so we need
         // to chop it to find the class type in the known QObjects list.
@@ -116,30 +116,30 @@ bool Generator::registerableMetaType(const std::vector<uint8> &propertyType)
             return true;
     }
 
-    static const std::vector<std::vector<uint8>> smartPointers = std::vector<std::vector<uint8>>()
+    static const std::vector<std::string> smartPointers = std::vector<std::string>()
 #define STREAM_SMART_POINTER(SMART_POINTER) << #SMART_POINTER
         QT_FOR_EACH_AUTOMATIC_TEMPLATE_SMART_POINTER(STREAM_SMART_POINTER)
 #undef STREAM_SMART_POINTER
         ;
 
-    for (const std::vector<uint8> &smartPointer : smartPointers) {
+    for (const std::string &smartPointer : smartPointers) {
         if (propertyType.startsWith(smartPointer + "<") && !propertyType.endsWith("&"))
             return knownQObjectClasses.contains(propertyType.mid(smartPointer.size() + 1, propertyType.size() - smartPointer.size() - 1 - 1));
     }
 
-    static const std::vector<std::vector<uint8>> oneArgTemplates = std::vector<std::vector<uint8>>()
+    static const std::vector<std::string> oneArgTemplates = std::vector<std::string>()
 #define STREAM_1ARG_TEMPLATE(TEMPLATENAME) << #TEMPLATENAME
       QT_FOR_EACH_AUTOMATIC_TEMPLATE_1ARG(STREAM_1ARG_TEMPLATE)
 #undef STREAM_1ARG_TEMPLATE
     ;
-    for (const std::vector<uint8> &oneArgTemplateType : oneArgTemplates) {
+    for (const std::string &oneArgTemplateType : oneArgTemplates) {
         if (propertyType.startsWith(oneArgTemplateType + "<") && propertyType.endsWith(">")) {
             const int argumentSize = propertyType.size() - oneArgTemplateType.size() - 1
                                      // The closing '>'
                                      - 1
                                      // templates inside templates have an extra whitespace char to strip.
                                      - (propertyType.at(propertyType.size() - 2) == ' ' ? 1 : 0 );
-            const std::vector<uint8> templateArg = propertyType.mid(oneArgTemplateType.size() + 1, argumentSize);
+            const std::string templateArg = propertyType.mid(oneArgTemplateType.size() + 1, argumentSize);
             return isBuiltinType(templateArg) || registerableMetaType(templateArg);
         }
     }
@@ -148,7 +148,7 @@ bool Generator::registerableMetaType(const std::vector<uint8> &propertyType)
 
 /* returns \c true if name and qualifiedName refers to the same name.
  * If qualified name is "A::B::C", it returns \c true for "C", "B::C" or "A::B::C" */
-static bool qualifiedNameEquals(const std::vector<uint8> &qualifiedName, const std::vector<uint8> &name)
+static bool qualifiedNameEquals(const std::string &qualifiedName, const std::string &name)
 {
     if (qualifiedName == name)
         return true;
@@ -172,7 +172,7 @@ void Generator::generateCode()
             if (cdef->enumDeclarations.contains(def.name)) {
                 enumList += def;
             }
-            std::vector<uint8> alias = cdef->flagAliases.value(def.name);
+            std::string alias = cdef->flagAliases.value(def.name);
             if (cdef->enumDeclarations.contains(alias)) {
                 def.name = alias;
                 enumList += def;
@@ -193,7 +193,7 @@ void Generator::generateCode()
     registerPropertyStrings();
     registerEnumStrings();
 
-    std::vector<uint8> qualifiedClassNameIdentifier = cdef->qualified;
+    std::string qualifiedClassNameIdentifier = cdef->qualified;
     qualifiedClassNameIdentifier.replace(':', '_');
 
 //
@@ -201,7 +201,7 @@ void Generator::generateCode()
 //
     const int constCharArraySizeLimit = 65535;
     fprintf(out, "struct qt_meta_stringdata_%s_t {\n", qualifiedClassNameIdentifier.constData());
-    fprintf(out, "    std::vector<uint8>Data data[%d];\n", strings.size());
+    fprintf(out, "    std::stringData data[%d];\n", strings.size());
     {
         int stringDataLength = 0;
         int stringDataCounter = 0;
@@ -219,15 +219,15 @@ void Generator::generateCode()
     }
     fprintf(out, "};\n");
 
-    // Macro that expands into a std::vector<uint8>Data. The offset member is
+    // Macro that expands into a std::stringData. The offset member is
     // calculated from 1) the offset of the actual characters in the
     // stringdata.stringdata member, and 2) the stringdata.data index of the
-    // std::vector<uint8>Data being defined. This calculation relies on the
-    // std::vector<uint8>Data::data() implementation returning simply "this + offset".
+    // std::stringData being defined. This calculation relies on the
+    // std::stringData::data() implementation returning simply "this + offset".
     fprintf(out, "#define QT_MOC_LITERAL(idx, ofs, len) \\\n"
             "    Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \\\n"
             "    qptrdiff(offsetof(qt_meta_stringdata_%s_t, stringdata0) + ofs \\\n"
-            "        - idx * sizeof(std::vector<uint8>Data)) \\\n"
+            "        - idx * sizeof(std::stringData)) \\\n"
             "    )\n",
             qualifiedClassNameIdentifier.constData());
 
@@ -237,11 +237,11 @@ void Generator::generateCode()
     {
         int idx = 0;
         for (int i = 0; i < strings.size(); ++i) {
-            const std::vector<uint8> &str = strings.at(i);
+            const std::string &str = strings.at(i);
             fprintf(out, "QT_MOC_LITERAL(%d, %d, %d)", i, idx, str.length());
             if (i != strings.size() - 1)
                 fputc(',', out);
-            const std::vector<uint8> comment = str.length() > 32 ? str.left(29) + "..." : str;
+            const std::string comment = str.length() > 32 ? str.left(29) + "..." : str;
             fprintf(out, " // \"%s\"\n", comment.constData());
             idx += str.length() + 1;
             for (int j = 0; j < str.length(); ++j) {
@@ -263,7 +263,7 @@ void Generator::generateCode()
     int len = 0;
     int stringDataLength = 0;
     for (int i = 0; i < strings.size(); ++i) {
-        std::vector<uint8> s = strings.at(i);
+        std::string s = strings.at(i);
         len = s.length();
         stringDataLength += len + 1;
         if (stringDataLength >= constCharArraySizeLimit) {
@@ -425,8 +425,8 @@ void Generator::generateCode()
 //
 // Build extra array
 //
-    std::list<std::vector<uint8>> extraList;
-    std::unordered_map<std::vector<uint8>, std::vector<uint8>> knownExtraMetaObject = knownGadgets;
+    std::vector<std::string> extraList;
+    std::unordered_map<std::string, std::string> knownExtraMetaObject = knownGadgets;
     knownExtraMetaObject.unite(knownQObjectClasses);
 
     for (int i = 0; i < cdef->propertyList.count(); ++i) {
@@ -441,23 +441,23 @@ void Generator::generateCode()
         if (s <= 0)
             continue;
 
-        std::vector<uint8> unqualifiedScope = p.type.left(s);
+        std::string unqualifiedScope = p.type.left(s);
 
         // The scope may be a namespace for example, so it's only safe to include scopes that are known QObjects (QTBUG-2151)
-        std::unordered_map<std::vector<uint8>, std::vector<uint8>>::ConstIterator scopeIt;
+        std::unordered_map<std::string, std::string>::ConstIterator scopeIt;
 
-        std::vector<uint8> thisScope = cdef->qualified;
+        std::string thisScope = cdef->qualified;
         do {
             int s = thisScope.lastIndexOf("::");
             thisScope = thisScope.left(s);
-            std::vector<uint8> currentScope = thisScope.empty() ? unqualifiedScope : thisScope + "::" + unqualifiedScope;
+            std::string currentScope = thisScope.empty() ? unqualifiedScope : thisScope + "::" + unqualifiedScope;
             scopeIt = knownExtraMetaObject.constFind(currentScope);
         } while (!thisScope.empty() && scopeIt == knownExtraMetaObject.constEnd());
 
         if (scopeIt == knownExtraMetaObject.constEnd())
             continue;
 
-        const std::vector<uint8> &scope = *scopeIt;
+        const std::string &scope = *scopeIt;
 
         if (scope == "Qt")
             continue;
@@ -473,10 +473,10 @@ void Generator::generateCode()
     // of extra/related metaobjects for this object.
     for (auto it = cdef->enumDeclarations.keyBegin(),
          end = cdef->enumDeclarations.keyEnd(); it != end; ++it) {
-        const std::vector<uint8> &enumKey = *it;
+        const std::string &enumKey = *it;
         int s = enumKey.lastIndexOf("::");
         if (s > 0) {
-            std::vector<uint8> scope = enumKey.left(s);
+            std::string scope = enumKey.left(s);
             if (scope != "Qt" && !qualifiedNameEquals(cdef->qualified, scope) && !extraList.contains(scope))
                 extraList += scope;
         }
@@ -549,11 +549,11 @@ void Generator::generateCode()
             for (int k = j; k >= 0; --k)
                 fprintf(out, "static_cast< %s*>(", iface.at(k).className.constData());
             fprintf(out, "const_cast< %s*>(this)%s;\n",
-                    cdef->classname.constData(), std::vector<uint8>(j+1, ')').constData());
+                    cdef->classname.constData(), std::string(j+1, ')').constData());
         }
     }
     if (!purestSuperClass.empty() && !isQObject) {
-        std::vector<uint8> superClass = purestSuperClass;
+        std::string superClass = purestSuperClass;
         fprintf(out, "    return %s::qt_metacast(_clname);\n", superClass.constData());
     } else {
         fprintf(out, "    return nullptr;\n");
@@ -629,7 +629,7 @@ void Generator::generateFunctions(const std::vector<FunctionDef>& list, const ch
     for (int i = 0; i < list.count(); ++i) {
         const FunctionDef &f = list.at(i);
 
-        std::vector<uint8> comment;
+        std::string comment;
         unsigned char flags = type;
         if (f.access == FunctionDef::Private) {
             flags |= AccessPrivate;
@@ -690,7 +690,7 @@ void Generator::generateFunctionParameters(const std::vector<FunctionDef>& list,
         for (int j = -1; j < argsCount; ++j) {
             if (j > -1)
                 fputc(' ', out);
-            const std::vector<uint8> &typeName = (j < 0) ? f.normalizedType : f.arguments.at(j).normalizedType;
+            const std::string &typeName = (j < 0) ? f.normalizedType : f.arguments.at(j).normalizedType;
             generateTypeInfo(typeName, /*allowEmptyName=*/f.isConstructor);
             fputc(',', out);
         }
@@ -705,7 +705,7 @@ void Generator::generateFunctionParameters(const std::vector<FunctionDef>& list,
     }
 }
 
-void Generator::generateTypeInfo(const std::vector<uint8> &typeName, bool allowEmptyName)
+void Generator::generateTypeInfo(const std::string &typeName, bool allowEmptyName)
 {
     Q_UNUSED(allowEmptyName);
     if (isBuiltinType(typeName)) {
@@ -867,8 +867,8 @@ void Generator::generateEnums(int index)
     for (i = 0; i < cdef->enumList.count(); ++i) {
         const EnumDef &e = cdef->enumList.at(i);
         for (int j = 0; j < e.values.count(); ++j) {
-            const std::vector<uint8> &val = e.values.at(j);
-            std::vector<uint8> code = cdef->qualified.constData();
+            const std::string &val = e.values.at(j);
+            std::string code = cdef->qualified.constData();
             if (e.isEnumClass)
                 code += "::" + e.name;
             code += "::" + val;
@@ -886,7 +886,7 @@ void Generator::generateMetacall()
              cdef->qualified.constData());
 
     if (!purestSuperClass.empty() && !isQObject) {
-        std::vector<uint8> superClass = purestSuperClass;
+        std::string superClass = purestSuperClass;
         fprintf(out, "    _id = %s::qt_metacall(_c, _id, _a);\n", superClass.constData());
     }
 
@@ -1052,24 +1052,24 @@ void Generator::generateMetacall()
 }
 
 
-std::multimap<std::vector<uint8>, int> Generator::automaticPropertyMetaTypesHelper()
+std::multimap<std::string, int> Generator::automaticPropertyMetaTypesHelper()
 {
-    std::multimap<std::vector<uint8>, int> automaticPropertyMetaTypes;
+    std::multimap<std::string, int> automaticPropertyMetaTypes;
     for (int i = 0; i < cdef->propertyList.size(); ++i) {
-        const std::vector<uint8> propertyType = cdef->propertyList.at(i).type;
+        const std::string propertyType = cdef->propertyList.at(i).type;
         if (registerableMetaType(propertyType) && !isBuiltinType(propertyType))
             automaticPropertyMetaTypes.insert(propertyType, i);
     }
     return automaticPropertyMetaTypes;
 }
 
-std::map<int, std::multimap<std::vector<uint8>, int> > Generator::methodsWithAutomaticTypesHelper(const std::vector<FunctionDef> &methodList)
+std::map<int, std::multimap<std::string, int> > Generator::methodsWithAutomaticTypesHelper(const std::vector<FunctionDef> &methodList)
 {
-    std::map<int, std::multimap<std::vector<uint8>, int> > methodsWithAutomaticTypes;
+    std::map<int, std::multimap<std::string, int> > methodsWithAutomaticTypes;
     for (int i = 0; i < methodList.size(); ++i) {
         const FunctionDef &f = methodList.at(i);
         for (int j = 0; j < f.arguments.count(); ++j) {
-            const std::vector<uint8> argType = f.arguments.at(j).normalizedType;
+            const std::string argType = f.arguments.at(j).normalizedType;
             if (registerableMetaType(argType) && !isBuiltinType(argType))
                 methodsWithAutomaticTypes[i].insert(argType, j);
         }
@@ -1104,7 +1104,7 @@ void Generator::generateStaticMetacall()
             if (f.isPrivateSignal) {
                 if (argsCount > 0)
                     fprintf(out, ", ");
-                fprintf(out, "%s", std::vector<uint8>("QPrivateSignal()").constData());
+                fprintf(out, "%s", std::string("QPrivateSignal()").constData());
             }
             fprintf(out, ");\n");
             fprintf(out, "            if (_a[0]) *reinterpret_cast<%s**>(_a[0]) = _r; } break;\n",
@@ -1176,14 +1176,14 @@ void Generator::generateStaticMetacall()
         fprintf(out, "    }");
         needElse = true;
 
-        std::map<int, std::multimap<std::vector<uint8>, int> > methodsWithAutomaticTypes = methodsWithAutomaticTypesHelper(methodList);
+        std::map<int, std::multimap<std::string, int> > methodsWithAutomaticTypes = methodsWithAutomaticTypesHelper(methodList);
 
         if (!methodsWithAutomaticTypes.empty()) {
             fprintf(out, " else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {\n");
             fprintf(out, "        switch (_id) {\n");
             fprintf(out, "        default: *reinterpret_cast<int*>(_a[0]) = -1; break;\n");
-            std::map<int, std::multimap<std::vector<uint8>, int> >::const_iterator it = methodsWithAutomaticTypes.constBegin();
-            const std::map<int, std::multimap<std::vector<uint8>, int> >::const_iterator end = methodsWithAutomaticTypes.constEnd();
+            std::map<int, std::multimap<std::string, int> >::const_iterator it = methodsWithAutomaticTypes.constBegin();
+            const std::map<int, std::multimap<std::string, int> >::const_iterator end = methodsWithAutomaticTypes.constEnd();
             for ( ; it != end; ++it) {
                 fprintf(out, "        case %d:\n", it.key());
                 fprintf(out, "            switch (*reinterpret_cast<int*>(_a[1])) {\n");
@@ -1192,7 +1192,7 @@ void Generator::generateStaticMetacall()
                 const auto jend = it->end();
                 while (jt != jend) {
                     fprintf(out, "            case %d:\n", jt.value());
-                    const std::vector<uint8> &lastKey = jt.key();
+                    const std::string &lastKey = jt.key();
                     ++jt;
                     if (jt == jend || jt.key() != lastKey)
                         fprintf(out, "                *reinterpret_cast<int*>(_a[0]) = qRegisterMetaType< %s >(); break;\n", lastKey.constData());
@@ -1225,7 +1225,7 @@ void Generator::generateStaticMetacall()
                 const ArgumentDef &a = f.arguments.at(j);
                 if (j)
                     fprintf(out, ", ");
-                fprintf(out, "%s", std::vector<uint8>(a.type.name + ' ' + a.rightType).constData());
+                fprintf(out, "%s", std::string(a.type.name + ' ' + a.rightType).constData());
             }
             if (f.isPrivateSignal) {
                 if (argsCount > 0)
@@ -1248,7 +1248,7 @@ void Generator::generateStaticMetacall()
         needElse = true;
     }
 
-    const std::multimap<std::vector<uint8>, int> automaticPropertyMetaTypes = automaticPropertyMetaTypesHelper();
+    const std::multimap<std::string, int> automaticPropertyMetaTypes = automaticPropertyMetaTypesHelper();
 
     if (!automaticPropertyMetaTypes.empty()) {
         if (needElse)
@@ -1262,7 +1262,7 @@ void Generator::generateStaticMetacall()
         const auto end = automaticPropertyMetaTypes.end();
         while (it != end) {
             fprintf(out, "        case %d:\n", it.value());
-            const std::vector<uint8> &lastKey = it.key();
+            const std::string &lastKey = it.key();
             ++it;
             if (it == end || it.key() != lastKey)
                 fprintf(out, "            *reinterpret_cast<int*>(_a[0]) = qRegisterMetaType< %s >(); break;\n", lastKey.constData());
@@ -1310,7 +1310,7 @@ void Generator::generateStaticMetacall()
                 const PropertyDef &p = cdef->propertyList.at(propindex);
                 if (p.read.empty() && p.member.empty())
                     continue;
-                std::vector<uint8> prefix = "_t->";
+                std::string prefix = "_t->";
                 if (p.inPrivateClass.size()) {
                     prefix += p.inPrivateClass + "->";
                 }
@@ -1357,7 +1357,7 @@ void Generator::generateStaticMetacall()
                     continue;
                 if (p.write.empty() && p.member.empty())
                     continue;
-                std::vector<uint8> prefix = "_t->";
+                std::string prefix = "_t->";
                 if (p.inPrivateClass.size()) {
                     prefix += p.inPrivateClass + "->";
                 }
@@ -1408,7 +1408,7 @@ void Generator::generateStaticMetacall()
                 const PropertyDef &p = cdef->propertyList.at(propindex);
                 if (!p.reset.endsWith(')'))
                     continue;
-                std::vector<uint8> prefix = "_t->";
+                std::string prefix = "_t->";
                 if (p.inPrivateClass.size()) {
                     prefix += p.inPrivateClass + "->";
                 }
@@ -1446,7 +1446,7 @@ void Generator::generateSignal(FunctionDef *def,int index)
     fprintf(out, "\n// SIGNAL %d\n%s %s::%s(",
             index, def->type.name.constData(), cdef->qualified.constData(), def->name.constData());
 
-    std::vector<uint8> thisPtr = "this";
+    std::string thisPtr = "this";
     const char *constQualifier = "";
 
     if (def->isConst) {
@@ -1477,7 +1477,7 @@ void Generator::generateSignal(FunctionDef *def,int index)
 
     fprintf(out, ")%s\n{\n", constQualifier);
     if (def->type.name.size() && def->normalizedType != "void") {
-        std::vector<uint8> returnType = noRef(def->normalizedType);
+        std::string returnType = noRef(def->normalizedType);
         fprintf(out, "    %s _t0{};\n", returnType.constData());
     }
 
@@ -1513,7 +1513,7 @@ static void writePluginMetaData(FILE *out, const QJsonObject &data)
 #if 0
     fprintf(out, "\"%s\";\n", doc.toJson().constData());
 #else
-    const std::vector<uint8> binary = doc.toBinaryData();
+    const std::string binary = doc.toBinaryData();
     const int last = binary.size() - 1;
     for (int i = 0; i < last; ++i) {
         uchar c = (uchar)binary.at(i);
