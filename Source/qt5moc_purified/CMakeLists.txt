@@ -1,9 +1,11 @@
 SET( DEFINE
 )
 SET( INCLUDE
+rapidjson
 Core
 )
 SET( LINK
+rapidjson
 Core
 )
 

@@ -1,35 +1,7 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Copyright (C) 2013 Olivier Goffart <ogoffart@woboq.com>
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the tools applications of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:GPL-EXCEPT$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 3 as published by the Free Software
-** Foundation with exceptions as appearing in the file LICENSE.GPL3-EXCEPT
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
-
 #include "generator.h"
 #include "outputrevision.h"
 #include "utils.h"
+#if 0
 #include <QtCore/qmetatype.h>
 #include <QtCore/qjsondocument.h>
 #include <QtCore/qjsonobject.h>
@@ -44,7 +16,7 @@ namespace header_tool {
 
 uint32 nameToBuiltinType(const std::vector<uint8> &name)
 {
-    if (name.isEmpty())
+    if (name.empty())
         return 0;
 
     uint32 tp = QMetaType::type(name.constData());
@@ -190,7 +162,7 @@ void Generator::generateCode()
 {
     bool isQt = (cdef->classname == "Qt");
     bool isQObject = (cdef->classname == "QObject");
-    bool isConstructible = !cdef->constructorList.isEmpty();
+    bool isConstructible = !cdef->constructorList.empty();
 
     // filter out undeclared enumerators and sets
     {
@@ -445,8 +417,8 @@ void Generator::generateCode()
 // Generate internal qt_static_metacall() function
 //
     const bool hasStaticMetaCall = !isQt &&
-            (cdef->hasQObject || !cdef->methodList.isEmpty()
-             || !cdef->propertyList.isEmpty() || !cdef->constructorList.isEmpty());
+            (cdef->hasQObject || !cdef->methodList.empty()
+             || !cdef->propertyList.empty() || !cdef->constructorList.empty());
     if (hasStaticMetaCall)
         generateStaticMetacall();
 
@@ -478,9 +450,9 @@ void Generator::generateCode()
         do {
             int s = thisScope.lastIndexOf("::");
             thisScope = thisScope.left(s);
-            std::vector<uint8> currentScope = thisScope.isEmpty() ? unqualifiedScope : thisScope + "::" + unqualifiedScope;
+            std::vector<uint8> currentScope = thisScope.empty() ? unqualifiedScope : thisScope + "::" + unqualifiedScope;
             scopeIt = knownExtraMetaObject.constFind(currentScope);
-        } while (!thisScope.isEmpty() && scopeIt == knownExtraMetaObject.constEnd());
+        } while (!thisScope.empty() && scopeIt == knownExtraMetaObject.constEnd());
 
         if (scopeIt == knownExtraMetaObject.constEnd())
             continue;
@@ -510,7 +482,7 @@ void Generator::generateCode()
         }
     }
 
-    if (!extraList.isEmpty()) {
+    if (!extraList.empty()) {
         fprintf(out, "static const QMetaObject * const qt_meta_extradata_%s[] = {\n    ", qualifiedClassNameIdentifier.constData());
         for (int i = 0; i < extraList.count(); ++i) {
             fprintf(out, "    &%s::staticMetaObject,\n", extraList.at(i).constData());
@@ -540,7 +512,7 @@ void Generator::generateCode()
     else
         fprintf(out, " nullptr, ");
 
-    if (extraList.isEmpty())
+    if (extraList.empty())
         fprintf(out, "nullptr, ");
     else
         fprintf(out, "qt_meta_extradata_%s, ", qualifiedClassNameIdentifier.constData());
@@ -580,7 +552,7 @@ void Generator::generateCode()
                     cdef->classname.constData(), std::vector<uint8>(j+1, ')').constData());
         }
     }
-    if (!purestSuperClass.isEmpty() && !isQObject) {
+    if (!purestSuperClass.empty() && !isQObject) {
         std::vector<uint8> superClass = purestSuperClass;
         fprintf(out, "    return %s::qt_metacast(_clname);\n", superClass.constData());
     } else {
@@ -617,7 +589,7 @@ void Generator::registerClassInfoStrings()
 
 void Generator::generateClassInfos()
 {
-    if (cdef->classInfoList.isEmpty())
+    if (cdef->classInfoList.empty())
         return;
 
     fprintf(out, "\n // classinfo: key, value\n");
@@ -650,7 +622,7 @@ void Generator::registerFunctionStrings(const std::vector<FunctionDef>& list)
 
 void Generator::generateFunctions(const std::vector<FunctionDef>& list, const char *functype, int type, int &paramsIndex)
 {
-    if (list.isEmpty())
+    if (list.empty())
         return;
     fprintf(out, "\n // %ss: name, argc, parameters, tag, flags\n", functype);
 
@@ -706,7 +678,7 @@ void Generator::generateFunctionRevisions(const std::vector<FunctionDef>& list, 
 
 void Generator::generateFunctionParameters(const std::vector<FunctionDef>& list, const char *functype)
 {
-    if (list.isEmpty())
+    if (list.empty())
         return;
     fprintf(out, "\n // %ss: parameters\n", functype);
     for (int i = 0; i < list.count(); ++i) {
@@ -753,7 +725,7 @@ void Generator::generateTypeInfo(const std::vector<uint8> &typeName, bool allowE
             fprintf(out, "%4d", type);
         }
     } else {
-        Q_ASSERT(!typeName.isEmpty() || allowEmptyName);
+        Q_ASSERT(!typeName.empty() || allowEmptyName);
         fprintf(out, "0x%.8x | %d", IsUnresolvedType, stridx(typeName));
     }
 }
@@ -781,42 +753,42 @@ void Generator::generateProperties()
         uint32 flags = Invalid;
         if (!isBuiltinType(p.type))
             flags |= EnumOrFlag;
-        if (!p.member.isEmpty() && !p.constant)
+        if (!p.member.empty() && !p.constant)
             flags |= Writable;
-        if (!p.read.isEmpty() || !p.member.isEmpty())
+        if (!p.read.empty() || !p.member.empty())
             flags |= Readable;
-        if (!p.write.isEmpty()) {
+        if (!p.write.empty()) {
             flags |= Writable;
             if (p.stdCppSet())
                 flags |= StdCppSet;
         }
-        if (!p.reset.isEmpty())
+        if (!p.reset.empty())
             flags |= Resettable;
 
 //         if (p.override)
 //             flags |= Override;
 
-        if (p.designable.isEmpty())
+        if (p.designable.empty())
             flags |= ResolveDesignable;
         else if (p.designable != "false")
             flags |= Designable;
 
-        if (p.scriptable.isEmpty())
+        if (p.scriptable.empty())
             flags |= ResolveScriptable;
         else if (p.scriptable != "false")
             flags |= Scriptable;
 
-        if (p.stored.isEmpty())
+        if (p.stored.empty())
             flags |= ResolveStored;
         else if (p.stored != "false")
             flags |= Stored;
 
-        if (p.editable.isEmpty())
+        if (p.editable.empty())
             flags |= ResolveEditable;
         else if (p.editable != "false")
             flags |= Editable;
 
-        if (p.user.isEmpty())
+        if (p.user.empty())
             flags |= ResolveUser;
         else if (p.user != "false")
             flags |= User;
@@ -870,7 +842,7 @@ void Generator::registerEnumStrings()
 
 void Generator::generateEnums(int index)
 {
-    if (cdef->enumDeclarations.isEmpty())
+    if (cdef->enumDeclarations.empty())
         return;
 
     fprintf(out, "\n // enums: name, flags, count, data\n");
@@ -913,7 +885,7 @@ void Generator::generateMetacall()
     fprintf(out, "\nint %s::qt_metacall(QMetaObject::Call _c, int _id, void **_a)\n{\n",
              cdef->qualified.constData());
 
-    if (!purestSuperClass.isEmpty() && !isQObject) {
+    if (!purestSuperClass.empty() && !isQObject) {
         std::vector<uint8> superClass = purestSuperClass;
         fprintf(out, "    _id = %s::qt_metacall(_c, _id, _a);\n", superClass.constData());
     }
@@ -944,7 +916,7 @@ void Generator::generateMetacall()
         fprintf(out, " else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {\n");
         fprintf(out, "        if (_id < %d)\n", methodList.size());
 
-        if (methodsWithAutomaticTypesHelper(methodList).isEmpty())
+        if (methodsWithAutomaticTypesHelper(methodList).empty())
             fprintf(out, "            *reinterpret_cast<int*>(_a[0]) = -1;\n");
         else
             fprintf(out, "            qt_static_metacall(this, _c, _id, _a);\n");
@@ -1080,9 +1052,9 @@ void Generator::generateMetacall()
 }
 
 
-QMultiMap<std::vector<uint8>, int> Generator::automaticPropertyMetaTypesHelper()
+std::multimap<std::vector<uint8>, int> Generator::automaticPropertyMetaTypesHelper()
 {
-    QMultiMap<std::vector<uint8>, int> automaticPropertyMetaTypes;
+    std::multimap<std::vector<uint8>, int> automaticPropertyMetaTypes;
     for (int i = 0; i < cdef->propertyList.size(); ++i) {
         const std::vector<uint8> propertyType = cdef->propertyList.at(i).type;
         if (registerableMetaType(propertyType) && !isBuiltinType(propertyType))
@@ -1091,9 +1063,9 @@ QMultiMap<std::vector<uint8>, int> Generator::automaticPropertyMetaTypesHelper()
     return automaticPropertyMetaTypes;
 }
 
-QMap<int, QMultiMap<std::vector<uint8>, int> > Generator::methodsWithAutomaticTypesHelper(const std::vector<FunctionDef> &methodList)
+std::map<int, std::multimap<std::vector<uint8>, int> > Generator::methodsWithAutomaticTypesHelper(const std::vector<FunctionDef> &methodList)
 {
-    QMap<int, QMultiMap<std::vector<uint8>, int> > methodsWithAutomaticTypes;
+    std::map<int, std::multimap<std::vector<uint8>, int> > methodsWithAutomaticTypes;
     for (int i = 0; i < methodList.size(); ++i) {
         const FunctionDef &f = methodList.at(i);
         for (int j = 0; j < f.arguments.count(); ++j) {
@@ -1113,7 +1085,7 @@ void Generator::generateStaticMetacall()
     bool needElse = false;
     bool isUsed_a = false;
 
-    if (!cdef->constructorList.isEmpty()) {
+    if (!cdef->constructorList.empty()) {
         fprintf(out, "    if (_c == QMetaObject::CreateInstance) {\n");
         fprintf(out, "        switch (_id) {\n");
         for (int ctorindex = 0; ctorindex < cdef->constructorList.count(); ++ctorindex) {
@@ -1150,7 +1122,7 @@ void Generator::generateStaticMetacall()
     methodList += cdef->slotList;
     methodList += cdef->methodList;
 
-    if (!methodList.isEmpty()) {
+    if (!methodList.empty()) {
         if (needElse)
             fprintf(out, " else ");
         else
@@ -1168,7 +1140,7 @@ void Generator::generateStaticMetacall()
         fprintf(out, "        switch (_id) {\n");
         for (int methodindex = 0; methodindex < methodList.size(); ++methodindex) {
             const FunctionDef &f = methodList.at(methodindex);
-            Q_ASSERT(!f.normalizedType.isEmpty());
+            Q_ASSERT(!f.normalizedType.empty());
             fprintf(out, "        case %d: ", methodindex);
             if (f.normalizedType != "void")
                 fprintf(out, "{ %s _r = ", noRef(f.normalizedType).constData());
@@ -1204,14 +1176,14 @@ void Generator::generateStaticMetacall()
         fprintf(out, "    }");
         needElse = true;
 
-        QMap<int, QMultiMap<std::vector<uint8>, int> > methodsWithAutomaticTypes = methodsWithAutomaticTypesHelper(methodList);
+        std::map<int, std::multimap<std::vector<uint8>, int> > methodsWithAutomaticTypes = methodsWithAutomaticTypesHelper(methodList);
 
-        if (!methodsWithAutomaticTypes.isEmpty()) {
+        if (!methodsWithAutomaticTypes.empty()) {
             fprintf(out, " else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {\n");
             fprintf(out, "        switch (_id) {\n");
             fprintf(out, "        default: *reinterpret_cast<int*>(_a[0]) = -1; break;\n");
-            QMap<int, QMultiMap<std::vector<uint8>, int> >::const_iterator it = methodsWithAutomaticTypes.constBegin();
-            const QMap<int, QMultiMap<std::vector<uint8>, int> >::const_iterator end = methodsWithAutomaticTypes.constEnd();
+            std::map<int, std::multimap<std::vector<uint8>, int> >::const_iterator it = methodsWithAutomaticTypes.constBegin();
+            const std::map<int, std::multimap<std::vector<uint8>, int> >::const_iterator end = methodsWithAutomaticTypes.constEnd();
             for ( ; it != end; ++it) {
                 fprintf(out, "        case %d:\n", it.key());
                 fprintf(out, "            switch (*reinterpret_cast<int*>(_a[1])) {\n");
@@ -1234,7 +1206,7 @@ void Generator::generateStaticMetacall()
         }
 
     }
-    if (!cdef->signalList.isEmpty()) {
+    if (!cdef->signalList.empty()) {
         Q_ASSERT(needElse); // if there is signal, there was method.
         fprintf(out, " else if (_c == QMetaObject::IndexOfMethod) {\n");
         fprintf(out, "        int *result = reinterpret_cast<int *>(_a[0]);\n");
@@ -1242,7 +1214,7 @@ void Generator::generateStaticMetacall()
         bool anythingUsed = false;
         for (int methodindex = 0; methodindex < cdef->signalList.size(); ++methodindex) {
             const FunctionDef &f = cdef->signalList.at(methodindex);
-            if (f.wasCloned || !f.inPrivateClass.isEmpty() || f.isStatic)
+            if (f.wasCloned || !f.inPrivateClass.empty() || f.isStatic)
                 continue;
             anythingUsed = true;
             fprintf(out, "        {\n");
@@ -1276,9 +1248,9 @@ void Generator::generateStaticMetacall()
         needElse = true;
     }
 
-    const QMultiMap<std::vector<uint8>, int> automaticPropertyMetaTypes = automaticPropertyMetaTypesHelper();
+    const std::multimap<std::vector<uint8>, int> automaticPropertyMetaTypes = automaticPropertyMetaTypesHelper();
 
-    if (!automaticPropertyMetaTypes.isEmpty()) {
+    if (!automaticPropertyMetaTypes.empty()) {
         if (needElse)
             fprintf(out, " else ");
         else
@@ -1308,13 +1280,13 @@ void Generator::generateStaticMetacall()
         bool needReset = false;
         for (int i = 0; i < cdef->propertyList.size(); ++i) {
             const PropertyDef &p = cdef->propertyList.at(i);
-            needGet |= !p.read.isEmpty() || !p.member.isEmpty();
-            if (!p.read.isEmpty() || !p.member.isEmpty())
+            needGet |= !p.read.empty() || !p.member.empty();
+            if (!p.read.empty() || !p.member.empty())
                 needTempVarForGet |= (p.gspec != PropertyDef::PointerSpec
                                       && p.gspec != PropertyDef::ReferenceSpec);
 
-            needSet |= !p.write.isEmpty() || (!p.member.isEmpty() && !p.constant);
-            needReset |= !p.reset.isEmpty();
+            needSet |= !p.write.empty() || (!p.member.empty() && !p.constant);
+            needReset |= !p.reset.empty();
         }
         fprintf(out, "\n#ifndef QT_NO_PROPERTIES\n    ");
 
@@ -1336,7 +1308,7 @@ void Generator::generateStaticMetacall()
             fprintf(out, "        switch (_id) {\n");
             for (int propindex = 0; propindex < cdef->propertyList.size(); ++propindex) {
                 const PropertyDef &p = cdef->propertyList.at(propindex);
-                if (p.read.isEmpty() && p.member.isEmpty())
+                if (p.read.empty() && p.member.empty())
                     continue;
                 std::vector<uint8> prefix = "_t->";
                 if (p.inPrivateClass.size()) {
@@ -1351,7 +1323,7 @@ void Generator::generateStaticMetacall()
                 else if (cdef->enumDeclarations.value(p.type, false))
                     fprintf(out, "        case %d: *reinterpret_cast<int*>(_v) = QFlag(%s%s()); break;\n",
                             propindex, prefix.constData(), p.read.constData());
-                else if (!p.read.isEmpty())
+                else if (!p.read.empty())
                     fprintf(out, "        case %d: *reinterpret_cast< %s*>(_v) = %s%s(); break;\n",
                             propindex, p.type.constData(), prefix.constData(), p.read.constData());
                 else
@@ -1383,7 +1355,7 @@ void Generator::generateStaticMetacall()
                 const PropertyDef &p = cdef->propertyList.at(propindex);
                 if (p.constant)
                     continue;
-                if (p.write.isEmpty() && p.member.isEmpty())
+                if (p.write.empty() && p.member.empty())
                     continue;
                 std::vector<uint8> prefix = "_t->";
                 if (p.inPrivateClass.size()) {
@@ -1392,7 +1364,7 @@ void Generator::generateStaticMetacall()
                 if (cdef->enumDeclarations.value(p.type, false)) {
                     fprintf(out, "        case %d: %s%s(QFlag(*reinterpret_cast<int*>(_v))); break;\n",
                             propindex, prefix.constData(), p.write.constData());
-                } else if (!p.write.isEmpty()) {
+                } else if (!p.write.empty()) {
                     fprintf(out, "        case %d: %s%s(*reinterpret_cast< %s*>(_v)); break;\n",
                             propindex, prefix.constData(), p.write.constData(), p.type.constData());
                 } else {
@@ -1401,7 +1373,7 @@ void Generator::generateStaticMetacall()
                             prefix.constData(), p.member.constData(), p.type.constData());
                     fprintf(out, "                %s%s = *reinterpret_cast< %s*>(_v);\n",
                             prefix.constData(), p.member.constData(), p.type.constData());
-                    if (!p.notify.isEmpty() && p.notifyId != -1) {
+                    if (!p.notify.empty() && p.notifyId != -1) {
                         const FunctionDef &f = cdef->signalList.at(p.notifyId);
                         if (f.arguments.size() == 0)
                             fprintf(out, "                Q_EMIT _t->%s();\n", p.notify.constData());
@@ -1454,9 +1426,9 @@ void Generator::generateStaticMetacall()
     if (needElse)
         fprintf(out, "\n");
 
-    if (methodList.isEmpty()) {
+    if (methodList.empty()) {
         fprintf(out, "    Q_UNUSED(_o);\n");
-        if (cdef->constructorList.isEmpty() && automaticPropertyMetaTypes.isEmpty() && methodsWithAutomaticTypesHelper(methodList).isEmpty()) {
+        if (cdef->constructorList.empty() && automaticPropertyMetaTypes.empty() && methodsWithAutomaticTypesHelper(methodList).empty()) {
             fprintf(out, "    Q_UNUSED(_id);\n");
             fprintf(out, "    Q_UNUSED(_c);\n");
         }
@@ -1482,8 +1454,8 @@ void Generator::generateSignal(FunctionDef *def,int index)
         constQualifier = "const";
     }
 
-    Q_ASSERT(!def->normalizedType.isEmpty());
-    if (def->arguments.isEmpty() && def->normalizedType == "void" && !def->isPrivateSignal) {
+    Q_ASSERT(!def->normalizedType.empty());
+    if (def->arguments.empty() && def->normalizedType == "void" && !def->isPrivateSignal) {
         fprintf(out, ")%s\n{\n"
                 "    QMetaObject::activate(%s, &staticMetaObject, %d, nullptr);\n"
                 "}\n", constQualifier, thisPtr.constData(), index);
@@ -1498,7 +1470,7 @@ void Generator::generateSignal(FunctionDef *def,int index)
         fprintf(out, "%s _t%d%s", a.type.name.constData(), offset++, a.rightType.constData());
     }
     if (def->isPrivateSignal) {
-        if (!def->arguments.isEmpty())
+        if (!def->arguments.empty())
             fprintf(out, ", ");
         fprintf(out, "QPrivateSignal _t%d", offset++);
     }
@@ -1560,19 +1532,19 @@ static void writePluginMetaData(FILE *out, const QJsonObject &data)
 
 void Generator::generatePluginMetaData()
 {
-    if (cdef->pluginData.iid.isEmpty())
+    if (cdef->pluginData.iid.empty())
         return;
 
     // Write plugin meta data #ifdefed QT_NO_DEBUG with debug=false,
     // true, respectively.
 
     QJsonObject data;
-    const QString debugKey = QStringLiteral("debug");
-    data.insert(QStringLiteral("IID"), QLatin1String(cdef->pluginData.iid.constData()));
-    data.insert(QStringLiteral("className"), QLatin1String(cdef->classname.constData()));
-    data.insert(QStringLiteral("version"), (int)QT_VERSION);
+    const std::string debugKey = std::stringLiteral("debug");
+    data.insert(std::stringLiteral("IID"), QLatin1String(cdef->pluginData.iid.constData()));
+    data.insert(std::stringLiteral("className"), QLatin1String(cdef->classname.constData()));
+    data.insert(std::stringLiteral("version"), (int)QT_VERSION);
     data.insert(debugKey, QJsonValue(false));
-    data.insert(QStringLiteral("MetaData"), cdef->pluginData.metaData.object());
+    data.insert(std::stringLiteral("MetaData"), cdef->pluginData.metaData.object());
 
     // Add -M args from the command line:
     for (auto it = cdef->pluginData.metaArgs.cbegin(), end = cdef->pluginData.metaArgs.cend(); it != end; ++it)
@@ -1599,3 +1571,4 @@ void Generator::generatePluginMetaData()
 }
 
 }
+#endif

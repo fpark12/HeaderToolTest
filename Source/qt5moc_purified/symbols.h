@@ -17,13 +17,20 @@ namespace header_tool
 	{
 		inline SubArray() :from(0), len(-1)
 		{}
+		inline SubArray(const std::string &a) : array(a.begin(), a.end()), from(0), len(a.size())
+		{}
+		//TODO
+		//inline SubArray(const char *s):array(s),from(0) { len = array.size(); }
+		inline SubArray(const std::string &a, size_t from, size_t len) : array(a.begin(), a.end()), from(from), len(len)
+		{}
+
 		inline SubArray(const std::vector<uint8> &a) : array(a), from(0), len(a.size())
 		{}
 		//inline SubArray(const char *s):array(s),from(0) { len = array.size(); }
-		inline SubArray(const std::vector<uint8> &a, int from, int len) : array(a), from(from), len(len)
+		inline SubArray(const std::vector<uint8> &a, size_t from, size_t len) : array(a), from(from), len(len)
 		{}
 		std::vector<uint8> array;
-		int from, len;
+		size_t from, len;
 		inline bool operator==(const SubArray &other) const
 		{
 			if (len != other.len)
@@ -35,7 +42,7 @@ namespace header_tool
 		}
 	};
 
-	static uint32 hash(const uint8 *p, int n)
+	static uint32 hash(const uint8 *p, size_t n)
 	{
 		uint32 h = 0;
 
@@ -68,14 +75,15 @@ namespace header_tool
 	inline uint32 qHash(const SubArray &key)
 	{
 		return hash(key.array.data() + key.from, key.len);
-		//return qHash( QLatin1String( key.array.data() + key.from, key.len ) );
+		//return std::unordered_map( QLatin1String( key.array.data() + key.from, key.len ) );
 	}
 
-	std::vector<uint8> sub(const std::vector<uint8>& vec, int pos, int len)
+	template<typename T>
+	T sub(const T& vec, size_t pos, size_t len = -1)
 	{
 		if (pos >= vec.size())
 		{
-			return std::vector<uint8>();
+			return T();
 		}
 
 		if (len < 0)
@@ -97,7 +105,7 @@ namespace header_tool
 		{
 			return vec;
 		}
-		return std::vector<uint8>(vec.data() + pos, vec.data() + pos + len);
+		return T(vec.data() + pos, vec.data() + pos + len);
 	}
 
 
@@ -145,7 +153,7 @@ namespace header_tool
 		{
 			return lex;
 		}
-		std::vector<uint8> lex;
+		std::string lex;
 
 #else
 
@@ -154,22 +162,22 @@ namespace header_tool
 		inline Symbol(int lineNum, Token token) :
 			lineNum(lineNum), token(token), from(0), len(-1)
 		{}
-		inline Symbol(int lineNum, Token token, const std::vector<uint8> &lexem) :
+		inline Symbol(int lineNum, Token token, const std::string &lexem) :
 			lineNum(lineNum), token(token), lex(lexem), from(0)
 		{
 			len = lex.size();
 		}
-		inline Symbol(int lineNum, Token token, const std::vector<uint8> &lexem, int from, int len) :
+		inline Symbol(int lineNum, Token token, const std::string &lexem, size_t from, size_t len) :
 			lineNum(lineNum), token(token), lex(lexem), from(from), len(len)
 		{}
 		int lineNum;
 		Token token;
-		inline std::vector<uint8> lexem() const
+		inline std::string lexem() const
 		{
 			return sub(lex, from, len);
 			//return lex.mid(from, len);
 		}
-		inline std::vector<uint8> unquotedLexem() const
+		inline std::string unquotedLexem() const
 		{
 			return sub(lex, from + 1, len - 2);
 			//return lex.mid(from + 1, len - 2);
@@ -182,8 +190,8 @@ namespace header_tool
 		{
 			return SubArray(lex, from, len) == SubArray(o.lex, o.from, o.len);
 		}
-		std::vector<uint8> lex;
-		int from, len;
+		std::string lex;
+		size_t from, len;
 
 #endif
 	};
@@ -194,8 +202,8 @@ namespace header_tool
 	struct SafeSymbols
 	{
 		Symbols symbols;
-		std::vector<uint8> expandedMacro;
-		std::set<std::vector<uint8>> excludedSymbols;
+		std::string expandedMacro;
+		std::set<std::string> excludedSymbols;
 		int index;
 	};
 	//Q_DECLARE_TYPEINFO(SafeSymbols, Q_MOVABLE_TYPE);
@@ -235,22 +243,22 @@ namespace header_tool
 		{
 			return symbol().token;
 		}
-		inline std::vector<uint8> lexem() const
+		inline std::string lexem() const
 		{
 			return symbol().lexem();
 		}
-		inline std::vector<uint8> unquotedLexem()
+		inline std::string unquotedLexem()
 		{
 			return symbol().unquotedLexem();
 		}
 
-		bool dontReplaceSymbol(const std::vector<uint8> &name);
-		std::set<std::vector<uint8>> excludeSymbols();
+		bool dontReplaceSymbol(const std::string &name);
+		std::set<std::string> excludeSymbols();
 	};
 
 	inline bool SymbolStack::test(Token token)
 	{
-		int stackPos = size() - 1;
+		size_t stackPos = size() - 1;
 		while (stackPos >= 0 && this->c.at(stackPos).index >= this->c.at(stackPos).symbols.size())
 			--stackPos;
 		if (stackPos < 0)
@@ -263,7 +271,7 @@ namespace header_tool
 		return false;
 	}
 
-	inline bool SymbolStack::dontReplaceSymbol(const std::vector<uint8> &name)
+	inline bool SymbolStack::dontReplaceSymbol(const std::string &name)
 	{
 		for (int i = 0; i < size(); ++i)
 		{
@@ -275,9 +283,9 @@ namespace header_tool
 		return false;
 	}
 
-	inline std::set<std::vector<uint8>> SymbolStack::excludeSymbols()
+	inline std::set<std::string> SymbolStack::excludeSymbols()
 	{
-		std::set<std::vector<uint8>> set;
+		std::set<std::string> set;
 		for (int i = 0; i < size(); ++i)
 		{
 			set.insert(this->c.at(i).expandedMacro);

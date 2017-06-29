@@ -4,6 +4,7 @@
 #include "parser.h"
 #include <list>
 #include <set>
+#include <string>
 #include <unordered_map>
 #include <stdio.h>
 
@@ -21,7 +22,8 @@ struct Macro
 #ifdef USE_LEXEM_STORE
 typedef std::vector<uint8> MacroName;
 #else
-typedef SubArray MacroName;
+typedef std::string MacroName;
+//typedef SubArray MacroName;
 #endif
 typedef std::unordered_map<MacroName, Macro> Macros;
 
@@ -34,7 +36,8 @@ public:
     static bool preprocessOnly;
     std::list<std::vector<uint8>> frameworks;
     std::set<std::vector<uint8>> preprocessedIncludes;
-    std::unordered_map<std::vector<uint8>, std::vector<uint8>> nonlocalIncludePathResolutionCache;
+	std::unordered_map<std::string, std::vector<uint8>> nonlocalIncludePathResolutionCache;
+	//std::unordered_map<std::vector<uint8>, std::vector<uint8>> nonlocalIncludePathResolutionCache;
     Macros macros;
     std::vector<uint8> resolveInclude(const std::vector<uint8> &filename, const std::vector<uint8> &relativeTo);
     Symbols preprocessed(const std::vector<uint8> &filename, QFile *device);

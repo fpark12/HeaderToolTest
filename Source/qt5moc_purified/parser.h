@@ -20,14 +20,15 @@ public:
 
     struct IncludePath
     {
-        inline explicit IncludePath(const std::vector<uint8> &_path)
+        inline explicit IncludePath(const std::string &_path)
             : path(_path), isFrameworkPath(false) {}
-        std::vector<uint8> path;
+        std::string path;
         bool isFrameworkPath;
     };
     std::list<IncludePath> includes;
 
-    std::stack<std::vector<uint8>, std::list<std::vector<uint8>>> currentFilenames;
+	std::stack<std::string, std::list<std::string>> currentFilenames;
+	//std::stack<std::vector<uint8>, std::list<std::vector<uint8>>> currentFilenames;
 
     inline bool hasNext() const { return (index < symbols.size()); }
     inline Token next() { if (index >= symbols.size()) return NOTOKEN; return symbols.at(index++).token; }
@@ -38,8 +39,8 @@ public:
     inline Token lookup(int k = 1);
     inline const Symbol &symbol_lookup(int k = 1) { return symbols.at(index-1+k);}
     inline Token token() { return symbols.at(index-1).token;}
-    inline std::vector<uint8> lexem() { return symbols.at(index-1).lexem();}
-    inline std::vector<uint8> unquotedLexem() { return symbols.at(index-1).unquotedLexem();}
+    inline std::string lexem() { return symbols.at(index-1).lexem();}
+    inline std::string unquotedLexem() { return symbols.at(index-1).unquotedLexem();}
     inline const Symbol &symbol() { return symbols.at(index-1);}
 
     Q_NORETURN void error(int rollback);

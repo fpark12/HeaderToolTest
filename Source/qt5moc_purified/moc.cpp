@@ -1,50 +1,21 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Copyright (C) 2016 Olivier Goffart <ogoffart@woboq.com>
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the tools applications of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:GPL-EXCEPT$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 3 as published by the Free Software
-** Foundation with exceptions as appearing in the file LICENSE.GPL3-EXCEPT
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
-
 #include "moc.h"
 #include "generator.h"
-#include "qdatetime.h"
+//#include "qdatetime.h"
 #include "utils.h"
 #include "outputrevision.h"
-#include <QtCore/qfile.h>
-#include <QtCore/qfileinfo.h>
-#include <QtCore/qdir.h>
+//#include <QtCore/qfile.h>
+//#include <QtCore/qfileinfo.h>
+//#include <QtCore/qdir.h>
 
 // for normalizeTypeInternal
-#include <private/qmetaobject_moc_p.h>
-
+//#include <private/qmetaobject_moc_p.h>
+#if 0
 namespace header_tool {
 
 // only moc needs this function
-static std::vector<uint8> normalizeType(const std::vector<uint8> &ba, bool fixScope = false)
+static std::vector<uint8> normalizeType(const std::string &ba, bool fixScope = false)
 {
-    const char *s = ba.constData();
+    const char *s = ba.data();
     int len = ba.size();
     char stackbuf[64];
     char *buf = (len >= 64 ? new char[len + 1] : stackbuf);
@@ -136,7 +107,7 @@ bool Moc::parseClassHead(ClassDef *def)
             }
         } while (test(COMMA));
 
-        if (!def->superclassList.isEmpty()
+        if (!def->superclassList.empty()
             && knownGadgets.contains(def->superclassList.constFirst().first)) {
             // Q_GADGET subclasses are treated as Q_GADGETs
             knownGadgets.insert(def->classname, def->qualified);
@@ -224,7 +195,7 @@ Type Moc::parseType()
             ;
         }
         if (test(LANGLE)) {
-            if (type.name.isEmpty()) {
+            if (type.name.empty()) {
                 // '<' cannot start a type
                 return type;
             }
@@ -317,7 +288,7 @@ void Moc::parseFunctionArguments(FunctionDef *def)
             break;
     }
 
-    if (!def->arguments.isEmpty()
+    if (!def->arguments.empty()
         && def->arguments.constLast().normalizedType == "QPrivateSignal") {
         def->arguments.removeLast();
         def->isPrivateSignal = true;
@@ -384,7 +355,7 @@ bool Moc::parseFunction(FunctionDef *def, bool inMacro)
         || testFunctionAttribute(def) || testFunctionRevision(def)) {}
     bool templateFunction = (lookup() == TEMPLATE);
     def->type = parseType();
-    if (def->type.name.isEmpty()) {
+    if (def->type.name.empty()) {
         if (templateFunction)
             error("Template function as signal or slot");
         else
@@ -397,7 +368,7 @@ bool Moc::parseFunction(FunctionDef *def, bool inMacro)
         def->type = Type("int");
     } else {
         Type tempType = parseType();;
-        while (!tempType.name.isEmpty() && lookup() != LPAREN) {
+        while (!tempType.name.empty() && lookup() != LPAREN) {
             if (testFunctionAttribute(def->type.firstToken, def))
                 ; // fine
             else if (def->type.firstToken == Q_SIGNALS_TOKEN)
@@ -405,7 +376,7 @@ bool Moc::parseFunction(FunctionDef *def, bool inMacro)
             else if (def->type.firstToken == Q_SLOTS_TOKEN)
                 error();
             else {
-                if (!def->tag.isEmpty())
+                if (!def->tag.empty())
                     def->tag += ' ';
                 def->tag += def->type.name;
             }
@@ -478,7 +449,7 @@ bool Moc::parseMaybeFunction(const ClassDef *cdef, FunctionDef *def)
         || testFunctionAttribute(def) || testFunctionRevision(def)) {}
     bool tilde = test(TILDE);
     def->type = parseType();
-    if (def->type.name.isEmpty())
+    if (def->type.name.empty())
         return false;
     bool scopedFunctionName = false;
     if (test(LPAREN)) {
@@ -493,7 +464,7 @@ bool Moc::parseMaybeFunction(const ClassDef *cdef, FunctionDef *def)
         }
     } else {
         Type tempType = parseType();;
-        while (!tempType.name.isEmpty() && lookup() != LPAREN) {
+        while (!tempType.name.empty() && lookup() != LPAREN) {
             if (testFunctionAttribute(def->type.firstToken, def))
                 ; // fine
             else if (def->type.name == "Q_SIGNAL")
@@ -501,7 +472,7 @@ bool Moc::parseMaybeFunction(const ClassDef *cdef, FunctionDef *def)
             else if (def->type.name == "Q_SLOT")
                 def->isSlot = true;
             else {
-                if (!def->tag.isEmpty())
+                if (!def->tag.empty())
                     def->tag += ' ';
                 def->tag += def->type.name;
             }
@@ -645,7 +616,7 @@ void Moc::parse()
                         }
                         namespaceList += def;
                         index = rewind;
-                        if (!def.hasQNamespace && (!def.classInfoList.isEmpty() || !def.enumDeclarations.isEmpty()))
+                        if (!def.hasQNamespace && (!def.classInfoList.empty() || !def.enumDeclarations.empty()))
                             error("Namespace declaration lacks Q_NAMESPACE macro.");
                     }
                 }
@@ -765,7 +736,7 @@ void Moc::parse()
                     def.hasQObject = true;
                     if (templateClass)
                         error("Template classes not supported by Q_OBJECT");
-                    if (def.classname != "Qt" && def.classname != "QObject" && def.superclassList.isEmpty())
+                    if (def.classname != "Qt" && def.classname != "QObject" && def.superclassList.empty())
                         error("Class contains Q_OBJECT macro but does not inherit from QObject");
                     break;
                 case Q_GADGET_TOKEN:
@@ -872,8 +843,8 @@ void Moc::parse()
 
             next(RBRACE);
 
-            if (!def.hasQObject && !def.hasQGadget && def.signalList.isEmpty() && def.slotList.isEmpty()
-                && def.propertyList.isEmpty() && def.enumDeclarations.isEmpty())
+            if (!def.hasQObject && !def.hasQGadget && def.signalList.empty() && def.slotList.empty()
+                && def.propertyList.empty() && def.enumDeclarations.empty())
                 continue; // no meta object code required
 
 
@@ -881,7 +852,7 @@ void Moc::parse()
                 error("Class declaration lacks Q_OBJECT macro.");
 
             // Add meta tags to the plugin meta data:
-            if (!def.pluginData.iid.isEmpty())
+            if (!def.pluginData.iid.empty())
                 def.pluginData.metaArgs = metaArgs;
 
             checkSuperClasses(&def);
@@ -1153,21 +1124,21 @@ void Moc::parseSignals(ClassDef *def)
 void Moc::createPropertyDef(PropertyDef &propDef)
 {
     std::vector<uint8> type = parseType().name;
-    if (type.isEmpty())
+    if (type.empty())
         error();
     propDef.designable = propDef.scriptable = propDef.stored = "true";
     propDef.user = "false";
     /*
       The Q_PROPERTY construct cannot contain any commas, since
       commas separate macro arguments. We therefore expect users
-      to type "QMap" instead of "QMap<QString, QVariant>". For
+      to type "std::map" instead of "std::map<std::string, QVariant>". For
       coherence, we also expect the same for
       QValueList<QVariant>, the other template class supported by
       QVariant.
     */
     type = normalizeType(type);
-    if (type == "QMap")
-        type = "QMap<QString,QVariant>";
+    if (type == "std::map")
+        type = "std::map<std::string,QVariant>";
     else if (type == "QValueList")
         type = "QValueList<QVariant>";
     else if (type == "LongLong")
@@ -1278,7 +1249,7 @@ void Moc::parseProperty(ClassDef *def)
     createPropertyDef(propDef);
     next(RPAREN);
 
-    if(!propDef.notify.isEmpty())
+    if(!propDef.notify.empty())
         def->notifyableProperties++;
     if (propDef.revision > 0)
         ++def->revisionedProperties;
@@ -1297,13 +1268,13 @@ void Moc::parsePluginData(ClassDef *def)
         } else if (l == "FILE") {
             next(STRING_LITERAL);
             std::vector<uint8> metaDataFile = unquotedLexem();
-            QFileInfo fi(QFileInfo(QString::fromLocal8Bit(currentFilenames.top().constData())).dir(), QString::fromLocal8Bit(metaDataFile.constData()));
+            QFileInfo fi(QFileInfo(std::string::fromLocal8Bit(currentFilenames.top().constData())).dir(), std::string::fromLocal8Bit(metaDataFile.constData()));
             for (int j = 0; j < includes.size() && !fi.exists(); ++j) {
                 const IncludePath &p = includes.at(j);
                 if (p.isFrameworkPath)
                     continue;
 
-                fi.setFile(QString::fromLocal8Bit(p.path.constData()), QString::fromLocal8Bit(metaDataFile.constData()));
+                fi.setFile(std::string::fromLocal8Bit(p.path.constData()), std::string::fromLocal8Bit(metaDataFile.constData()));
                 // try again, maybe there's a file later in the include paths with the same name
                 if (fi.isDir()) {
                     fi = QFileInfo();
@@ -1327,7 +1298,7 @@ void Moc::parsePluginData(ClassDef *def)
         }
     }
 
-    if (!metaData.isEmpty()) {
+    if (!metaData.empty()) {
         def->pluginData.metaData = QJsonDocument::fromJson(metaData);
         if (!def->pluginData.metaData.isObject()) {
             const std::vector<uint8> msg = "Plugin Metadata file " + lexem()
@@ -1363,7 +1334,7 @@ void Moc::parsePrivateProperty(ClassDef *def)
 
     createPropertyDef(propDef);
 
-    if(!propDef.notify.isEmpty())
+    if(!propDef.notify.empty())
         def->notifyableProperties++;
     if (propDef.revision > 0)
         ++def->revisionedProperties;
@@ -1454,7 +1425,7 @@ void Moc::parseInterfaces(ClassDef *def)
         // resolve from classnames to interface ids
         for (int i = 0; i < iface.count(); ++i) {
             const std::vector<uint8> iid = interface2IdMap.value(iface.at(i).className);
-            if (iid.isEmpty())
+            if (iid.empty())
                 error("Undefined interface");
 
             iface[i].interfaceId = iid;
@@ -1684,7 +1655,7 @@ void Moc::checkProperties(ClassDef *cdef)
     std::set<std::vector<uint8>> definedProperties;
     for (int i = 0; i < cdef->propertyList.count(); ++i) {
         PropertyDef &p = cdef->propertyList[i];
-        if (p.read.isEmpty() && p.member.isEmpty())
+        if (p.read.empty() && p.member.empty())
             continue;
         if (definedProperties.contains(p.name)) {
             std::vector<uint8> msg = "The property '" + p.name + "' is defined multiple times in class " + cdef->classname + ".";
@@ -1717,7 +1688,7 @@ void Moc::checkProperties(ClassDef *cdef)
             p.gspec = spec;
             break;
         }
-        if(!p.notify.isEmpty()) {
+        if(!p.notify.empty()) {
             int notifyId = -1;
             for (int j = 0; j < cdef->signalList.count(); ++j) {
                 const FunctionDef &f = cdef->signalList.at(j);
@@ -1741,3 +1712,4 @@ void Moc::checkProperties(ClassDef *cdef)
 
 
 }
+#endif

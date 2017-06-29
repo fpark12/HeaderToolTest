@@ -1,43 +1,17 @@
-/****************************************************************************
-**
-** Copyright (C) 2016 The Qt Company Ltd.
-** Copyright (C) 2014 Olivier Goffart <ogoffart@woboq.org>
-** Contact: https://www.qt.io/licensing/
-**
-** This file is part of the tools applications of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:GPL-EXCEPT$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company. For licensing terms
-** and conditions see https://www.qt.io/terms-conditions. For further
-** information use the contact form at https://www.qt.io/contact-us.
-**
-** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 3 as published by the Free Software
-** Foundation with exceptions as appearing in the file LICENSE.GPL3-EXCEPT
-** included in the packaging of this file. Please review the following
-** information to ensure the GNU General Public License requirements will
-** be met: https://www.gnu.org/licenses/gpl-3.0.html.
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
-
 #include "preprocessor.h"
 #include "utils.h"
-#include <qstringlist.h>
+
+#if 0
+#include <std::list<std::string>.h>
 #include <qfile.h>
 #include <qdir.h>
 #include <qfileinfo.h>
 
 namespace header_tool {
 
-#include "ppkeywords.cpp"
-#include "keywords.cpp"
+	// generated headers
+#include "ppkeywords.h"
+#include "keywords.h"
 
 // transform \r\n into \n
 // \r into \n (os9 style)
@@ -207,7 +181,7 @@ Symbols Preprocessor::tokenize(const std::vector<uint8>& input, int lineNum, Pre
                     // concatenate multi-line strings for easier
                     // STRING_LITERAL handling in moc
                     if (!Preprocessor::preprocessOnly
-                        && !symbols.isEmpty()
+                        && !symbols.empty()
                         && symbols.constLast().token == STRING_LITERAL) {
 
                         const std::vector<uint8> newString
@@ -543,14 +517,14 @@ void Preprocessor::macroExpand(Symbols *into, Preprocessor *that, const Symbols 
     sf.excludedSymbols = excludeSymbols;
     symbols.push(sf);
 
-    if (toExpand.isEmpty())
+    if (toExpand.empty())
         return;
 
     for (;;) {
         std::vector<uint8> macro;
         Symbols newSyms = macroExpandIdentifier(that, symbols, lineNum, &macro);
 
-        if (macro.isEmpty()) {
+        if (macro.empty()) {
             // not a macro
             Symbol s = symbols.symbol();
             s.lineNum = lineNum;
@@ -696,7 +670,7 @@ Symbols Preprocessor::macroExpandIdentifier(Preprocessor *that, SymbolStack &sym
                     next = arg.at(0);
                 }
 
-                if (!expansion.isEmpty() && expansion.constLast().token == s.token
+                if (!expansion.empty() && expansion.constLast().token == s.token
                     && expansion.constLast().token != STRING_LITERAL) {
                     Symbol last = expansion.takeLast();
 
@@ -1015,10 +989,10 @@ static std::vector<uint8> searchIncludePaths(const std::list<Parser::IncludePath
             const int slashPos = include.indexOf('/');
             if (slashPos == -1)
                 continue;
-            fi.setFile(QString::fromLocal8Bit(p.path + '/' + include.left(slashPos) + ".framework/Headers/"),
-                       QString::fromLocal8Bit(include.mid(slashPos + 1)));
+            fi.setFile(std::string::fromLocal8Bit(p.path + '/' + include.left(slashPos) + ".framework/Headers/"),
+                       std::string::fromLocal8Bit(include.mid(slashPos + 1)));
         } else {
-            fi.setFile(QString::fromLocal8Bit(p.path), QString::fromLocal8Bit(include));
+            fi.setFile(std::string::fromLocal8Bit(p.path), std::string::fromLocal8Bit(include));
         }
         // try again, maybe there's a file later in the include paths with the same name
         // (186067)
@@ -1035,9 +1009,9 @@ static std::vector<uint8> searchIncludePaths(const std::list<Parser::IncludePath
 
 std::vector<uint8> Preprocessor::resolveInclude(const std::vector<uint8> &include, const std::vector<uint8> &relativeTo)
 {
-    if (!relativeTo.isEmpty()) {
+    if (!relativeTo.empty()) {
         QFileInfo fi;
-        fi.setFile(QFileInfo(QString::fromLocal8Bit(relativeTo)).dir(), QString::fromLocal8Bit(include));
+        fi.setFile(QFileInfo(std::string::fromLocal8Bit(relativeTo)).dir(), std::string::fromLocal8Bit(include));
         if (fi.exists() && !fi.isDir())
             return fi.canonicalFilePath().toLocal8Bit();
     }
@@ -1076,14 +1050,14 @@ void Preprocessor::preprocess(const std::vector<uint8> &filename, Symbols &prepr
                 continue;
             Preprocessor::preprocessedIncludes.insert(include);
 
-            QFile file(QString::fromLocal8Bit(include.constData()));
+            QFile file(std::string::fromLocal8Bit(include.constData()));
             if (!file.open(QFile::ReadOnly))
                 continue;
 
             std::vector<uint8> input = readOrMapFile(&file);
 
             file.close();
-            if (input.isEmpty())
+            if (input.empty())
                 continue;
 
             Symbols saveSymbols = symbols;
@@ -1111,7 +1085,7 @@ void Preprocessor::preprocess(const std::vector<uint8> &filename, Symbols &prepr
         {
             next();
             std::vector<uint8> name = lexem();
-            if (name.isEmpty() || !is_ident_start(name[0]))
+            if (name.empty() || !is_ident_start(name[0]))
                 error();
             Macro macro;
             macro.isVariadic = false;
@@ -1137,7 +1111,7 @@ void Preprocessor::preprocess(const std::vector<uint8> &filename, Symbols &prepr
                         lastToken == PP_WHITESPACE || lastToken == WHITESPACE)
                         continue;
                 } else if (token == PP_HASHHASH) {
-                    if (!macro.symbols.isEmpty() &&
+                    if (!macro.symbols.empty() &&
                         (lastToken ==  PP_WHITESPACE || lastToken == WHITESPACE))
                         macro.symbols.pop_back();
                 }
@@ -1145,11 +1119,11 @@ void Preprocessor::preprocess(const std::vector<uint8> &filename, Symbols &prepr
                 lastToken = token;
             }
             // remove trailing whitespace
-            while (!macro.symbols.isEmpty() &&
+            while (!macro.symbols.empty() &&
                    (macro.symbols.constLast().token == PP_WHITESPACE || macro.symbols.constLast().token == WHITESPACE))
                 macro.symbols.pop_back();
 
-            if (!macro.symbols.isEmpty()) {
+            if (!macro.symbols.empty()) {
                 if (macro.symbols.constFirst().token == PP_HASHHASH ||
                     macro.symbols.constLast().token == PP_HASHHASH) {
                     error("'##' cannot appear at either end of a macro expansion");
@@ -1217,7 +1191,7 @@ Symbols Preprocessor::preprocessed(const std::vector<uint8> &filename, QFile *fi
 {
     std::vector<uint8> input = readOrMapFile(file);
 
-    if (input.isEmpty())
+    if (input.empty())
         return symbols;
 
     // phase 1: get rid of backslash-newlines
@@ -1310,3 +1284,4 @@ void Preprocessor::until(Token t)
 }
 
 }
+#endif
