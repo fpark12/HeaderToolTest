@@ -14,7 +14,7 @@ namespace header_tool
 {
 
 	class QCommandLineParserPrivate;
-	class QCoreApplication;
+	//class QCoreApplication;
 
 	class Q_CORE_EXPORT QCommandLineParser
 	{

@@ -21,7 +21,8 @@ namespace header_tool
 		Q_NEVER_INLINE
 			explicit QCommandLineOptionPrivate(const std::list<std::string> &names)
 		{
-			this->names = std::move(names);
+			//a.splice(a.end(), b);
+			this->names.insert(this->names.begin(), names.begin(), names.end());
 			removeInvalidNames(this->names);
 		}
 

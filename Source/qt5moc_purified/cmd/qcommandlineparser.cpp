@@ -16,7 +16,7 @@
 namespace header_tool
 {
 
-	extern void Q_CORE_EXPORT qt_call_post_routines();
+	//extern void Q_CORE_EXPORT qt_call_post_routines();
 
 	typedef std::unordered_map<std::string, int> NameHash_t;
 
@@ -99,7 +99,7 @@ namespace header_tool
 			return std::list<std::string>();
 		}
 
-		size_t index = std::distance(nameHash.begin(), it);
+		size_t index = (*it).second;
 
 		return commandLineOptionList[index].names();
 	}
@@ -573,7 +573,8 @@ namespace header_tool
 		if (!d->parse(arguments))
 		{
 			showParserMessage(errorText() + '\n', ErrorMessage);
-			qt_call_post_routines();
+			// todo
+			//qt_call_post_routines();
 			::exit(EXIT_FAILURE);
 		}
 
@@ -1080,7 +1081,7 @@ namespace header_tool
 	Q_NORETURN void QCommandLineParser::showHelp(int exitCode)
 	{
 		showParserMessage(d->helpText(), UsageMessage);
-		qt_call_post_routines();
+		//qt_call_post_routines();
 		::exit(exitCode);
 	}
 

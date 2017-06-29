@@ -55,7 +55,7 @@ public:
     int evaluateCondition();
 
     enum TokenizeMode { TokenizeCpp, TokenizePreprocessor, PreparePreprocessorStatement, TokenizePreprocessorStatement, TokenizeInclude, PrepareDefine, TokenizeDefine };
-    static Symbols tokenize(const std::vector<uint8> &input, int lineNum = 1, TokenizeMode mode = TokenizeCpp);
+    static Symbols tokenize(const std::string &input, int lineNum = 1, TokenizeMode mode = TokenizeCpp);
 
 private:
     void until(Token);

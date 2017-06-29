@@ -14,7 +14,7 @@
 #include <qfileinfo.h>
 #include <qdir.h>
 
-#include <qcoreapplication.h>
+//#include <qcoreapplication.h>
 #endif
 namespace header_tool
 {
@@ -36,13 +36,13 @@ namespace header_tool
 	{
 		QFileInfo inFileInfo(QDir::current(), infile);
 		QFileInfo outFileInfo(QDir::current(), outfile);
-		const std::vector<uint8> relativePath = QFile::encodeName(outFileInfo.dir().relativeFilePath(inFileInfo.filePath()));
+		const std::vector<uint8> relativePath = outFileInfo.dir().relativeFilePath(inFileInfo.filePath()));
 #ifdef Q_OS_WIN
 		// It's a system limitation.
 		// It depends on the Win API function which is used by the program to open files.
 		// cl apparently uses the functions that have the MAX_PATH limitation.
 		if (outFileInfo.dir().absolutePath().length() + relativePath.length() + 1 >= 260)
-			return QFile::encodeName(inFileInfo.absoluteFilePath());
+			return inFileInfo.absoluteFilePath());
 #endif
 		return relativePath;
 	}
@@ -371,69 +371,62 @@ namespace header_tool
 			printf((std::string("Unknown compiler flavor '") + compilerFlavor + "'; valid values are: msvc, unix.").c_str());
 			parser.showHelp(1);
 		}
-#if 0
-
-
-
-
-
-
-
-
-
 
 		const auto macFrameworks = parser.values(macFrameworkOption);
 		for (const std::string &path : macFrameworks)
 		{
 			// minimalistic framework support for the mac
-			Preprocessor::IncludePath p(QFile::encodeName(path));
+			Preprocessor::IncludePath p(path);
 			p.isFrameworkPath = true;
-			pp.includes += p;
+			pp.includes.emplace_back(p);
 		}
 		const auto defines = parser.values(defineOption);
 		for (const std::string &arg : defines)
 		{
-			std::vector<uint8> name = arg.toLocal8Bit();
-			std::vector<uint8> value("1");
-			int eq = name.indexOf('=');
+			std::string name = arg;// .toLocal8Bit();
+			std::string value("1");
+			int eq = name.find('=');
 			if (eq >= 0)
 			{
-				value = name.mid(eq + 1);
-				name = name.left(eq);
+				value = sub(name, eq + 1);
+				name = sub(name,0, eq);
 			}
 			if (name.empty())
 			{
-				error("Missing macro name");
+				printf("Missing macro name");
 				parser.showHelp(1);
 			}
 			Macro macro;
 			macro.symbols = Preprocessor::tokenize(value, 1, Preprocessor::TokenizeDefine);
-			macro.symbols.removeLast(); // remove the EOF symbol
-			pp.macros.insert(name, macro);
+			macro.symbols.pop_back(); // remove the EOF symbol
+			pp.macros[name] = macro;
 		}
 		const auto undefines = parser.values(undefineOption);
 		for (const std::string &arg : undefines)
 		{
-			std::vector<uint8> macro = arg.toLocal8Bit();
+			std::string macro = arg;// .toLocal8Bit();
 			if (macro.empty())
 			{
-				error("Missing macro name");
+				printf("Missing macro name");
 				parser.showHelp(1);
 			}
-			pp.macros.remove(macro);
+			pp.macros.erase(macro);
 		}
-		const std::list<std::string> noNotesCompatValues = parser.values(noNotesWarningsCompatOption);
-		if (parser.isSet(noNotesOption) || noNotesCompatValues.contains("n")))
-			moc.displayNotes = false;
-		if (parser.isSet(noWarningsOption) || noNotesCompatValues.contains("w")))
-			moc.displayWarnings = moc.displayNotes = false;
 
+		const std::list<std::string> noNotesCompatValues = parser.values(noNotesWarningsCompatOption);
+		if (parser.isSet(noNotesOption) || std::find(noNotesCompatValues.begin(), noNotesCompatValues.end(),"n") != noNotesCompatValues.end())
+		moc.displayNotes = false;
+		if (parser.isSet(noWarningsOption) || std::find(noNotesCompatValues.begin(), noNotesCompatValues.end(),"w") != noNotesCompatValues.end())
+		moc.displayWarnings = moc.displayNotes = false;
+
+
+#if 0
 		if (autoInclude)
 		{
-			int spos = filename.lastIndexOf(QDir::separator());
-			int ppos = filename.lastIndexOf(QLatin1Char('.'));
+			int spos = std::distance(filename.begin(), std::find(filename.end(), filename.begin(), '/'));
+			int ppos = std::distance(filename.begin(), std::find(filename.end(), filename.begin(), '.'));
 			// spos >= -1 && ppos > spos => ppos >= 0
-			moc.noInclude = (ppos > spos && filename.at(ppos + 1).toLower() != QLatin1Char('h'));
+			moc.noInclude = (ppos > spos && std::tolower(filename[ppos + 1]) != 'h');
 		}
 		if (defaultInclude)
 		{
@@ -442,9 +435,13 @@ namespace header_tool
 				if (filename.size())
 				{
 					if (output.size())
-						moc.includeFiles.append(combinePath(filename, output));
+					{
+						moc.includeFiles.push_back(combinePath(filename, output));
+					}
 					else
-						moc.includeFiles.append(QFile::encodeName(filename));
+					{
+						moc.includeFiles.push_back(filename);
+					}
 				}
 			}
 			else
@@ -463,11 +460,22 @@ namespace header_tool
 			in.setFileName(filename);
 			if (!in.open(QIODevice::ReadOnly))
 			{
-				fprintf(stderr, "moc: %s: No such file\n", qPrintable(filename));
+				fprintf(stderr, "moc: %s: No such file\n", filename.c_str());
 				return 1;
 			}
-			moc.filename = filename.toLocal8Bit();
+			moc.filename = filename;
 		}
+
+
+
+
+
+
+
+
+
+
+	
 
 		const auto metadata = parser.values(metadataOption);
 		for (const std::string &md : metadata)
@@ -501,7 +509,7 @@ namespace header_tool
 		const auto includeFiles = parser.values(includeOption);
 		for (const std::string &includeName : includeFiles)
 		{
-			std::vector<uint8> rawName = pp.resolveInclude(QFile::encodeName(includeName), moc.filename);
+			std::vector<uint8> rawName = pp.resolveInclude(includeName), moc.filename);
 			if (rawName.empty())
 			{
 				fprintf(stderr, "Warning: Failed to resolve include \"%s\" for moc file %s\n",
@@ -539,13 +547,13 @@ namespace header_tool
 		if (output.size())
 		{ // output file specified
 #if defined(_MSC_VER) && _MSC_VER >= 1400
-			if (fopen_s(&out, QFile::encodeName(output).constData(), "w"))
+			if (fopen_s(&out, output).constData(), "w"))
 #else
-			out = fopen(QFile::encodeName(output).constData(), "w"); // create output file
+			out = fopen(output).constData(), "w"); // create output file
 			if (!out)
 #endif
 			{
-				fprintf(stderr, "moc: Cannot create %s\n", QFile::encodeName(output).constData());
+				fprintf(stderr, "moc: Cannot create %s\n", output).constData());
 				return 1;
 			}
 		}
