@@ -17,18 +17,14 @@ namespace header_tool
 	{
 		inline SubArray() :from(0), len(-1)
 		{}
+		inline SubArray(const char *s) : array(s), from(0), len(array.size())
+		{}
 		inline SubArray(const std::string &a) : array(a.begin(), a.end()), from(0), len(a.size())
 		{}
-		//TODO
-		//inline SubArray(const char *s):array(s),from(0) { len = array.size(); }
-		inline SubArray(const std::string &a, size_t from, size_t len) : array(a.begin(), a.end()), from(from), len(len)
-		{}
-
-		inline SubArray(const std::string &a) : array(a), from(0), len(a.size())
-		{}
-		//inline SubArray(const char *s):array(s),from(0) { len = array.size(); }
 		inline SubArray(const std::string &a, size_t from, size_t len) : array(a), from(from), len(len)
 		{}
+
+
 		std::string array;
 		size_t from, len;
 		inline bool operator==(const SubArray &other) const

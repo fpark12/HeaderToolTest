@@ -47,13 +47,12 @@ namespace header_tool
 		return relativePath;
 	}
 
-
+#endif
 	void error(const char *msg = "Invalid argument")
 	{
 		if (msg)
 			fprintf(stderr, "moc: %s\n", msg);
 	}
-
 
 	static inline bool hasNext(const Symbols &symbols, int i)
 	{
@@ -63,10 +62,8 @@ namespace header_tool
 	static inline const Symbol &next(const Symbols &symbols, int &i)
 	{
 		return symbols.at(i++);
-	}
+}
 
-#endif
-#if 0
 	std::string composePreprocessorOutput(const Symbols &symbols)
 	{
 		std::string output;
@@ -90,12 +87,12 @@ namespace header_tool
 					continue;
 				case PP_STRING_LITERAL:
 					if (last == PP_STRING_LITERAL)
-						output.chop(1);
+						output.erase(output.length() - 1);
 					else if (secondlast == PP_STRING_LITERAL && last == PP_WHITESPACE)
-						output.chop(2);
+						output.erase(output.length() - 2);
 					else
 						break;
-					output += sym.lexem().mid(1);
+					output += sub(sym.lexem(), 1);
 					secondlast = last;
 					last = PP_STRING_LITERAL;
 					continue;
@@ -115,7 +112,7 @@ namespace header_tool
 			if (padding > 0)
 			{
 				output.resize(output.size() + padding);
-				memset(output.data() + output.size() - padding, '\n', padding);
+				memset((void*)(output.data() + output.size() - padding), '\n', padding);
 				lineNum = sym.lineNum;
 			}
 
@@ -125,6 +122,7 @@ namespace header_tool
 		return output;
 	}
 
+#if 0
 	static std::vector<std::string> argumentsFromCommandLineAndFile(const std::vector<std::string> &arguments)
 	{
 		std::vector<std::string> allArguments;
