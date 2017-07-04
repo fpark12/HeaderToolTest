@@ -54,17 +54,17 @@ namespace header_tool
 			fprintf(stderr, "moc: %s\n", msg);
 	}
 
-	static inline bool hasNext(const Symbols &symbols, int i)
+	static inline bool hasNext(const std::vector<Symbol> &symbols, int i)
 	{
 		return (i < symbols.size());
 	}
 
-	static inline const Symbol &next(const Symbols &symbols, int &i)
+	static inline const Symbol &next(const std::vector<Symbol> &symbols, int &i)
 	{
 		return symbols.at(i++);
 }
 
-	std::string composePreprocessorOutput(const Symbols &symbols)
+	std::string composePreprocessorOutput(const std::vector<Symbol> &symbols)
 	{
 		std::string output;
 		int lineNum = 1;

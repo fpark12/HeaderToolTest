@@ -151,9 +151,9 @@ namespace header_tool
 
 #endif
 
-	Symbols Preprocessor::tokenize(const std::string& input, int lineNum, Preprocessor::TokenizeMode mode)
+	std::vector<Symbol> Preprocessor::tokenize(const std::string& input, int lineNum, Preprocessor::TokenizeMode mode)
 	{
-		Symbols symbols;
+		std::vector<Symbol> symbols;
 		// Preallocate some space to speed up the code below.
 		// The magic divisor value was found by calculating the average ratio between
 		// input size and the final size of symbols.
@@ -566,8 +566,7 @@ namespace header_tool
 		return symbols;
 	}
 
-#if 0
-	void Preprocessor::macroExpand(Symbols *into, Preprocessor *that, const Symbols &toExpand, int &index,
+	void Preprocessor::macroExpand(std::vector<Symbol> *into, Preprocessor *that, const std::vector<Symbol> &toExpand, int &index,
 		int lineNum, bool one, const std::set<std::string> &excludeSymbols)
 	{
 		SymbolStack symbols;
@@ -583,14 +582,14 @@ namespace header_tool
 		for (;;)
 		{
 			std::string macro;
-			Symbols newSyms = macroExpandIdentifier(that, symbols, lineNum, &macro);
+			std::vector<Symbol> newSyms = macroExpandIdentifier(that, symbols, lineNum, &macro);
 
 			if (macro.empty())
 			{
 				// not a macro
 				Symbol s = symbols.symbol();
 				s.lineNum = lineNum;
-				*into += s;
+				(*into).push_back(s);
 			}
 			else
 			{
@@ -612,20 +611,22 @@ namespace header_tool
 	}
 
 
-	Symbols Preprocessor::macroExpandIdentifier(Preprocessor *that, SymbolStack &symbols, int lineNum, std::string *std::string)
+	std::vector<Symbol> Preprocessor::macroExpandIdentifier(Preprocessor *that, SymbolStack &symbols, int lineNum, std::string* macroName)
 	{
 		Symbol s = symbols.symbol();
 
+		auto& macro_itr = that->macros.find(s.lex);
+
 		// not a macro
-		if (s.token != PP_IDENTIFIER || !that->std::unordered_map<std::string, Macro>.contains(s) || symbols.dontReplaceSymbol(s.lexem()))
+		if (s.token != PP_IDENTIFIER || macro_itr == that->macros.end() || symbols.dontReplaceSymbol(s.lexem()))
 		{
-			return Symbols();
+			return std::vector<Symbol>();
 		}
 
-		const Macro &macro = that->std::unordered_map<std::string, Macro>.value(s);
-		*std::string = s.lexem();
+		const Macro &macro = (*macro_itr).second;
+		*macroName = s.lexem();
 
-		Symbols expansion;
+		std::vector<Symbol> expansion;
 		if (!macro.isFunction)
 		{
 			expansion = macro.symbols;
@@ -639,18 +640,19 @@ namespace header_tool
 			}
 			if (!symbols.test(PP_LPAREN))
 			{
-				*std::string = std::string();
-				Symbols syms;
+				*macroName = std::string();
+				std::vector<Symbol> syms;
 				if (haveSpace)
-					syms += Symbol(lineNum, PP_WHITESPACE);
-				syms += s;
-				syms.last().lineNum = lineNum;
+					syms.push_back(Symbol(lineNum, PP_WHITESPACE));
+				syms.push_back(s);
+				syms.back().lineNum = lineNum;
 				return syms;
 			}
-			QVarLengthArray<Symbols, 5> arguments;
+			std::vector<std::vector<Symbol>> arguments;
+			arguments.reserve(5);
 			while (symbols.hasNext())
 			{
-				Symbols argument;
+				std::vector<Symbol> argument;
 				// strip leading space
 				while (symbols.test(PP_WHITESPACE))
 				{
@@ -675,9 +677,9 @@ namespace header_tool
 						if (!vararg)
 							break;
 					}
-					argument += symbols.symbol();
+					argument.push_back(symbols.symbol());
 				}
-				arguments += argument;
+				arguments.push_back(argument);
 
 				if (nesting < 0)
 					break;
@@ -687,7 +689,10 @@ namespace header_tool
 
 			// empty VA_ARGS
 			if (macro.isVariadic && arguments.size() == macro.arguments.size() - 1)
-				arguments += Symbols();
+			{
+				// todo:
+				// arguments += std::vector<Symbol>();
+			}
 
 			// now replace the macro arguments with the expanded arguments
 			enum Mode
@@ -699,13 +704,13 @@ namespace header_tool
 
 			for (int i = 0; i < macro.symbols.size(); ++i)
 			{
-				const Symbol &s = macro.symbols.at(i);
+				const Symbol &s = macro.symbols[i];
 				if (s.token == HASH || s.token == PP_HASHHASH)
 				{
 					mode = (s.token == HASH ? Hash : HashHash);
 					continue;
 				}
-				int index = macro.arguments.indexOf(s);
+				int index = std::distance(macro.arguments.begin(), std::find(macro.arguments.begin(), macro.arguments.end(), s));
 				if (mode == Normal)
 				{
 					if (index >= 0 && index < arguments.size())
@@ -713,18 +718,18 @@ namespace header_tool
 						// each argument undoergoes macro expansion if it's not used as part of a # or ##
 						if (i == macro.symbols.size() - 1 || macro.symbols.at(i + 1).token != PP_HASHHASH)
 						{
-							Symbols arg = arguments.at(index);
+							std::vector<Symbol> arg = arguments.at(index);
 							int idx = 1;
 							macroExpand(&expansion, that, arg, idx, lineNum, false, symbols.excludeSymbols());
 						}
 						else
 						{
-							expansion += arguments.at(index);
+							expansion.insert(expansion.end(), arguments[index].begin(), arguments[index].end());
 						}
 					}
 					else
 					{
-						expansion += s;
+						expansion.push_back(s);
 					}
 				}
 				else if (mode == Hash)
@@ -740,29 +745,29 @@ namespace header_tool
 						continue;
 					}
 
-					const Symbols &arg = arguments.at(index);
+					const std::vector<Symbol> &arg = arguments.at(index);
 					std::string stringified;
 					for (int i = 0; i < arg.size(); ++i)
 					{
 						stringified += arg.at(i).lexem();
 					}
-					stringified.replace('"', "\\\"");
-					stringified.prepend('"');
-					stringified.append('"');
-					expansion += Symbol(lineNum, STRING_LITERAL, stringified);
+					replace_all(stringified, R"(")", R"(\")");
+					stringified.insert(0, 1, '"');
+					stringified.insert(stringified.end(), 1, '"');
+					expansion.push_back(Symbol(lineNum, STRING_LITERAL, stringified));
 				}
 				else if (mode == HashHash)
 				{
 					if (s.token == WHITESPACE)
 						continue;
 
-					while (expansion.size() && expansion.constLast().token == PP_WHITESPACE)
+					while (expansion.size() && expansion.back().token == PP_WHITESPACE)
 						expansion.pop_back();
 
 					Symbol next = s;
 					if (index >= 0 && index < arguments.size())
 					{
-						const Symbols &arg = arguments.at(index);
+						const std::vector<Symbol> &arg = arguments.at(index);
 						if (arg.size() == 0)
 						{
 							mode = Normal;
@@ -771,24 +776,25 @@ namespace header_tool
 						next = arg.at(0);
 					}
 
-					if (!expansion.empty() && expansion.constLast().token == s.token
-						&& expansion.constLast().token != STRING_LITERAL)
+					if (!expansion.empty() && expansion.back().token == s.token
+						&& expansion.back().token != STRING_LITERAL)
 					{
-						Symbol last = expansion.takeLast();
+						Symbol last = expansion.back();
+						expansion.pop_back();
 
 						std::string lexem = last.lexem() + next.lexem();
-						expansion += Symbol(lineNum, last.token, lexem);
+						expansion.push_back(Symbol(lineNum, last.token, lexem));
 					}
 					else
 					{
-						expansion += next;
+						expansion.push_back(next);
 					}
 
 					if (index >= 0 && index < arguments.size())
 					{
-						const Symbols &arg = arguments.at(index);
+						const std::vector<Symbol> &arg = arguments.at(index);
 						for (int i = 1; i < arg.size(); ++i)
-							expansion += arg.at(i);
+							expansion.push_back(arg[i]);
 					}
 				}
 				mode = Normal;
@@ -800,6 +806,7 @@ namespace header_tool
 
 		return expansion;
 	}
+#if 0
 
 	void Preprocessor::substituteUntilNewline(Symbols &substituted)
 	{
@@ -1107,56 +1114,67 @@ namespace header_tool
 			}
 		}
 	}
+#endif
 
 	static std::string searchIncludePaths(const std::vector<Parser::IncludePath> &includepaths,
 		const std::string &include)
 	{
-		QFileInfo fi;
-		for (int j = 0; j < includepaths.size() && !fi.exists(); ++j)
+		std::filesystem::path fi;
+		for (int j = 0; j < includepaths.size() && !std::filesystem::exists(fi); ++j)
 		{
 			const Parser::IncludePath &p = includepaths.at(j);
 			if (p.isFrameworkPath)
 			{
-				const int slashPos = include.indexOf('/');
+				const int slashPos = include.find('/');
 				if (slashPos == -1)
 					continue;
-				fi.setFile(std::string::fromLocal8Bit(p.path + '/' + include.left(slashPos) + ".framework/Headers/"),
-					std::string::fromLocal8Bit(include.mid(slashPos + 1)));
+				fi = p.path + '/' + sub(include, 0, slashPos) + ".framework/Headers/";
+				fi += sub(include, slashPos + 1);
+				// fi.setFile(std::string::fromLocal8Bit(p.path + '/' + include.left(slashPos) + ".framework/Headers/"),
+				// std::string::fromLocal8Bit(include.mid(slashPos + 1)));
 			}
 			else
 			{
-				fi.setFile(std::string::fromLocal8Bit(p.path), std::string::fromLocal8Bit(include));
+				fi = p.path + '/' + include;
 			}
 			// try again, maybe there's a file later in the include paths with the same name
 			// (186067)
-			if (fi.isDir())
+			if (std::filesystem::is_directory(fi))
 			{
-				fi = QFileInfo();
+				fi.clear();
 				continue;
 			}
 		}
 
-		if (!fi.exists() || fi.isDir())
+		if (!std::filesystem::exists(fi) || std::filesystem::is_directory(fi))
 			return std::string();
-		return fi.canonicalFilePath().toLocal8Bit();
+
+		return fi.string();
 	}
 
+#if 0
+#endif
 	std::string Preprocessor::resolveInclude(const std::string &include, const std::string &relativeTo)
 	{
 		if (!relativeTo.empty())
 		{
-			QFileInfo fi;
-			fi.setFile(QFileInfo(std::string::fromLocal8Bit(relativeTo)).dir(), std::string::fromLocal8Bit(include));
-			if (fi.exists() && !fi.isDir())
-				return fi.canonicalFilePath().toLocal8Bit();
+			std::filesystem::path fi;
+			fi = relativeTo;
+			fi /= include;
+			if (std::filesystem::exists(fi) && std::filesystem::is_directory(fi))
+				return fi.string();
 		}
 
 		auto it = nonlocalIncludePathResolutionCache.find(include);
 		if (it == nonlocalIncludePathResolutionCache.end())
-			it = nonlocalIncludePathResolutionCache.insert(include, searchIncludePaths(includes, include));
-		return it.value();
+		{
+			it = nonlocalIncludePathResolutionCache.insert_or_assign(it, include, searchIncludePaths(includes, include));
+			//it = nonlocalIncludePathResolutionCache.insert(include, searchIncludePaths(includes, include));
+		}
+		return it->second;
 	}
 
+#if 0
 	void Preprocessor::preprocess(const std::string &filename, Symbols &preprocessed)
 	{
 		currentFilenames.push(filename);
@@ -1365,7 +1383,7 @@ namespace header_tool
 #endif
 
 		// phase 3: preprocess conditions and substitute std::unordered_map<std::string, Macro>
-		Symbols result;
+		std::vector<Symbol> result;
 		// Preallocate some space to speed up the code below.
 		// The magic value was found by logging the final size
 		// and calculating an average when running moc over FOSS projects.
@@ -1386,7 +1404,7 @@ namespace header_tool
 
 	void Preprocessor::parseDefineArguments(Macro *m)
 	{
-		Symbols arguments;
+		std::vector<Symbol> arguments;
 		while (hasNext())
 		{
 			while (test(PP_WHITESPACE))

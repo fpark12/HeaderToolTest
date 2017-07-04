@@ -297,7 +297,7 @@ void Moc::parseFunctionArguments(FunctionDef *def)
 
 bool Moc::testFunctionAttribute(FunctionDef *def)
 {
-    if (index < symbols.size() && testFunctionAttribute(symbols.at(index).token, def)) {
+    if (index < std::vector<Symbol>.size() && testFunctionAttribute(std::vector<Symbol>.at(index).token, def)) {
         ++index;
         return true;
     }
@@ -1498,7 +1498,7 @@ std::string Moc::lexemUntil(Token target)
     until(target);
     std::string s;
     while (from <= index) {
-        std::string n = symbols.at(from++-1).lexem();
+        std::string n = std::vector<Symbol>.at(from++-1).lexem();
         if (s.size() && n.size()) {
             char prev = s.at(s.size()-1);
             char next = n.at(0);
@@ -1518,7 +1518,7 @@ bool Moc::until(Token target) {
     int parenCount = 0;
     int angleCount = 0;
     if (index) {
-        switch(symbols.at(index-1).token) {
+        switch(std::vector<Symbol>.at(index-1).token) {
         case LBRACE: ++braceCount; break;
         case LBRACK: ++brackCount; break;
         case LPAREN: ++parenCount; break;
@@ -1532,8 +1532,8 @@ bool Moc::until(Token target) {
     // the beginning of a template type. so we just use heuristics.
     int possible = -1;
 
-    while (index < symbols.size()) {
-        Token t = symbols.at(index++).token;
+    while (index < std::vector<Symbol>.size()) {
+        Token t = std::vector<Symbol>.at(index++).token;
         switch (t) {
         case LBRACE: ++braceCount; break;
         case RBRACE: --braceCount; break;

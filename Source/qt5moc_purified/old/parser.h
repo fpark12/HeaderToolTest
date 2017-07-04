@@ -14,7 +14,7 @@ namespace header_tool
 	public:
 		Parser() :index(0), displayWarnings(true), displayNotes(true)
 		{}
-		Symbols symbols;
+		std::vector<Symbol> symbols;
 		int index;
 		bool displayWarnings;
 		bool displayNotes;

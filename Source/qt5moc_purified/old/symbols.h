@@ -193,11 +193,11 @@ namespace header_tool
 	};
 	//Q_DECLARE_TYPEINFO(Symbol, Q_MOVABLE_TYPE);
 
-	typedef std::vector<Symbol> Symbols;
+	//typedef std::vector<Symbol> std::vector<Symbol>;
 
 	struct SafeSymbols
 	{
-		Symbols symbols;
+		std::vector<Symbol> symbols;
 		std::string expandedMacro;
 		std::set<std::string> excludedSymbols;
 		int index;
