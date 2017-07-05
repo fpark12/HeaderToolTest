@@ -8,6 +8,7 @@
 
 #include <CommandLineOption.h>
 #include <commandlineparser.h>
+
 #if 0
 
 #include <qfile.h>
@@ -51,9 +52,6 @@ namespace header_tool
 		return relative_path;
 	}
 
-#if 0
-
-#endif
 	void error(const char *msg = "Invalid argument")
 	{
 		if (msg)
@@ -167,9 +165,6 @@ namespace header_tool
 		}
 		return allArguments;
 	}
-#if 0
-
-#endif
 
 	int runMoc(int argc, char **argv)
 	{
@@ -573,11 +568,7 @@ namespace header_tool
 
 		if (output.size())
 			fclose(out);
-#if 0
 
-
-
-#endif
 		return 0;
 	}
 

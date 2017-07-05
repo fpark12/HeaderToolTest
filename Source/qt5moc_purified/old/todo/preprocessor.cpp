@@ -18,11 +18,10 @@ namespace header_tool
 
 namespace header_tool
 {
-// generated headers
+	// generated headers
 #include "ppkeywords.h"
 #include "keywords.h"
 
-#if 0
 
 
 
@@ -34,9 +33,9 @@ namespace header_tool
 	{
 		std::string result;
 		result.resize(input.size());
-		const char *data = input.constData();
-		const char *end = input.constData() + input.size();
-		char *output = result.data();
+		const char *data = input.data();
+		const char *end = input.data() + input.size();
+		char *output = const_cast<char*>(result.data());
 
 		int newlines = 0;
 		while (data != end)
@@ -102,7 +101,7 @@ namespace header_tool
 				++data;
 			}
 		}
-		result.resize(output - result.constData());
+		result.resize(output - result.data());
 		return result;
 	}
 
@@ -148,8 +147,6 @@ namespace header_tool
 		}
 		return (index < symbols.size() - 1);
 	}
-
-#endif
 
 	std::vector<Symbol> Preprocessor::tokenize(const std::string& input, int lineNum, Preprocessor::TokenizeMode mode)
 	{
@@ -610,7 +607,6 @@ namespace header_tool
 			index = toExpand.size();
 	}
 
-
 	std::vector<Symbol> Preprocessor::macroExpandIdentifier(Preprocessor *that, SymbolStack &symbols, int lineNum, std::string* macroName)
 	{
 		Symbol s = symbols.symbol();
@@ -806,9 +802,8 @@ namespace header_tool
 
 		return expansion;
 	}
-#if 0
 
-	void Preprocessor::substituteUntilNewline(Symbols &substituted)
+	void Preprocessor::substituteUntilNewline(std::vector<Symbol> &substituted)
 	{
 		while (hasNext())
 		{
@@ -822,24 +817,23 @@ namespace header_tool
 				bool braces = test(PP_LPAREN);
 				next(PP_IDENTIFIER);
 				Symbol definedOrNotDefined = symbol();
-				definedOrNotDefined.token = std::unordered_map<std::string, Macro>.contains(definedOrNotDefined) ? PP_MOC_TRUE : PP_MOC_FALSE;
-				substituted += definedOrNotDefined;
+				definedOrNotDefined.token = macros.find(definedOrNotDefined.lex) != macros.end() ? PP_MOC_TRUE : PP_MOC_FALSE;
+				substituted.push_back(definedOrNotDefined);
 				if (braces)
 					test(PP_RPAREN);
 				continue;
 			}
 			else if (token == PP_NEWLINE)
 			{
-				substituted += symbol();
+				substituted.emplace_back();
 				break;
 			}
 			else
 			{
-				substituted += symbol();
+				substituted.emplace_back();
 			}
 		}
 	}
-
 
 	class PP_Expression : public Parser
 	{
@@ -1049,7 +1043,9 @@ namespace header_tool
 		else
 		{
 			next();
-			value = lexem().toInt(0, 0);
+			value = std::stoi(lexem());
+			// TODO
+			//value = lexem().toInt(0, 0);
 		}
 		return value;
 	}
@@ -1075,21 +1071,43 @@ namespace header_tool
 		return expression.value();
 	}
 
-	static std::string readOrMapFile(QFile *file)
+	static std::string readOrMapFile(FILE* file)
 	{
-		const qint64 size = file->size();
-		char *rawInput = reinterpret_cast<char*>(file->map(0, size));
-		return rawInput ? std::string::fromRawData(rawInput, size) : file->readAll();
+		std::ifstream ifs(file);
+		std::string content;
+		if (file)
+		{
+			if (ifs.is_open())
+			{
+				ifs.seekg(0, ifs.end);
+				int length = ifs.tellg();
+				ifs.seekg(0, ifs.beg);
+
+				if (length == 0)
+				{
+					return std::string();
+				}
+
+				content.resize(length);
+
+				if (content.capacity() == length)
+				{
+					ifs.read(&content.front(), length);
+				}
+			}
+		}
+
+		return std::move(content);
 	}
 
-	static void mergeStringLiterals(Symbols *_symbols)
+	static void mergeStringLiterals(std::vector<Symbol> *_symbols)
 	{
-		Symbols &symbols = *_symbols;
-		for (Symbols::iterator i = symbols.begin(); i != symbols.end(); ++i)
+		std::vector<Symbol>& symbols = *_symbols;
+		for (std::vector<Symbol>::iterator i = symbols.begin(); i != symbols.end(); ++i)
 		{
 			if (i->token == STRING_LITERAL)
 			{
-				Symbols::Iterator mergeSymbol = i;
+				std::vector<Symbol>::iterator mergeSymbol = i;
 				int literalsLength = mergeSymbol->len;
 				while (++i != symbols.end() && i->token == STRING_LITERAL)
 					literalsLength += i->len - 2; // no quotes
@@ -1100,11 +1118,11 @@ namespace header_tool
 					std::string &mergeSymbolLexem = mergeSymbol->lex;
 					mergeSymbolLexem.resize(0);
 					mergeSymbolLexem.reserve(literalsLength);
-					mergeSymbolLexem.append('"');
+					mergeSymbolLexem.push_back('"');
 					mergeSymbolLexem.append(mergeSymbolOriginalLexem);
-					for (Symbols::const_iterator j = mergeSymbol + 1; j != i; ++j)
-						mergeSymbolLexem.append(j->lex.constData() + j->from + 1, j->len - 2); // append j->unquotedLexem()
-					mergeSymbolLexem.append('"');
+					for (std::vector<Symbol>::const_iterator j = mergeSymbol + 1; j != i; ++j)
+						mergeSymbolLexem.append(j->lex.data() + j->from + 1, j->len - 2); // append j->unquotedLexem()
+					mergeSymbolLexem.push_back('"');
 					mergeSymbol->len = mergeSymbol->lex.length();
 					mergeSymbol->from = 0;
 					i = symbols.erase(mergeSymbol + 1, i);
@@ -1114,7 +1132,6 @@ namespace header_tool
 			}
 		}
 	}
-#endif
 
 	static std::string searchIncludePaths(const std::vector<Parser::IncludePath> &includepaths,
 		const std::string &include)
@@ -1152,8 +1169,6 @@ namespace header_tool
 		return fi.string();
 	}
 
-#if 0
-#endif
 	std::string Preprocessor::resolveInclude(const std::string &include, const std::string &relativeTo)
 	{
 		if (!relativeTo.empty())
@@ -1174,8 +1189,7 @@ namespace header_tool
 		return it->second;
 	}
 
-#if 0
-	void Preprocessor::preprocess(const std::string &filename, Symbols &preprocessed)
+	void Preprocessor::preprocess(const std::string &filename, std::vector<Symbol> &preprocessed)
 	{
 		currentFilenames.push(filename);
 		preprocessed.reserve(preprocessed.size() + symbols.size());
@@ -1192,7 +1206,8 @@ namespace header_tool
 						bool local = false;
 						if (test(PP_STRING_LITERAL))
 						{
-							local = lexem().startsWith('\"');
+							// TODO
+							local = lexem()[0] == '\"'; // same as '"'
 							include = unquotedLexem();
 						}
 						else
@@ -1200,24 +1215,27 @@ namespace header_tool
 						until(PP_NEWLINE);
 
 						include = resolveInclude(include, local ? filename : std::string());
-						if (include.isNull())
+						if (include.empty())
 							continue;
 
-						if (Preprocessor::preprocessedIncludes.contains(include))
+						if (Preprocessor::preprocessedIncludes.find(include) != Preprocessor::preprocessedIncludes.end())
 							continue;
+
 						Preprocessor::preprocessedIncludes.insert(include);
 
-						QFile file(std::string::fromLocal8Bit(include.constData()));
-						if (!file.open(QFile::ReadOnly))
+						FILE* file = fopen(include.c_str(), "r");
+						if (!file)
+						{
 							continue;
+						}
 
-						std::string input = readOrMapFile(&file);
+						std::string input = readOrMapFile(file);
 
-						file.close();
+						fclose(file);
 						if (input.empty())
 							continue;
 
-						Symbols saveSymbols = symbols;
+						std::vector<Symbol> saveSymbols = symbols;
 						int saveIndex = index;
 
 						// phase 1: get rid of backslash-newlines
@@ -1230,9 +1248,9 @@ namespace header_tool
 						index = 0;
 
 						// phase 3: preprocess conditions and substitute std::unordered_map<std::string, Macro>
-						preprocessed += Symbol(0, MOC_INCLUDE_BEGIN, include);
+						preprocessed.push_back(Symbol(0, MOC_INCLUDE_BEGIN, include));
 						preprocess(include, preprocessed);
-						preprocessed += Symbol(lineNum, MOC_INCLUDE_END, include);
+						preprocessed.push_back(Symbol(lineNum, MOC_INCLUDE_END, include));
 
 						symbols = saveSymbols;
 						index = saveIndex;
@@ -1279,23 +1297,23 @@ namespace header_tool
 									(lastToken == PP_WHITESPACE || lastToken == WHITESPACE))
 									macro.symbols.pop_back();
 							}
-							macro.symbols.append(symbols.at(i));
+							macro.symbols.push_back(symbols.at(i));
 							lastToken = token;
 						}
 						// remove trailing whitespace
 						while (!macro.symbols.empty() &&
-							(macro.symbols.constLast().token == PP_WHITESPACE || macro.symbols.constLast().token == WHITESPACE))
+							(macro.symbols.back().token == PP_WHITESPACE || macro.symbols.back().token == WHITESPACE))
 							macro.symbols.pop_back();
 
 						if (!macro.symbols.empty())
 						{
-							if (macro.symbols.constFirst().token == PP_HASHHASH ||
-								macro.symbols.constLast().token == PP_HASHHASH)
+							if (macro.symbols.front().token == PP_HASHHASH ||
+								macro.symbols.back().token == PP_HASHHASH)
 							{
 								error("'##' cannot appear at either end of a macro expansion");
 							}
 						}
-						std::unordered_map<std::string, Macro>.insert(name, macro);
+						macros.insert_or_assign(name, macro);
 						continue;
 					}
 				case PP_UNDEF:
@@ -1303,7 +1321,7 @@ namespace header_tool
 						next();
 						std::string name = lexem();
 						until(PP_NEWLINE);
-						std::unordered_map<std::string, Macro>.remove(name);
+						macros.erase(name);
 						continue;
 					}
 				case PP_IDENTIFIER:
@@ -1345,22 +1363,22 @@ namespace header_tool
 				case SLOTS:
 					{
 						Symbol sym = symbol();
-						if (std::unordered_map<std::string, Macro>.contains("QT_NO_KEYWORDS"))
+						if (macros.find("QT_NO_KEYWORDS") != macros.end())
 							sym.token = IDENTIFIER;
 						else
 							sym.token = (token == SIGNALS ? Q_SIGNALS_TOKEN : Q_SLOTS_TOKEN);
-						preprocessed += sym;
+						preprocessed.push_back(sym);
 					} continue;
 				default:
 					break;
 			}
-			preprocessed += symbol();
+			preprocessed.push_back(symbol());
 		}
 
 		currentFilenames.pop();
 	}
 
-	Symbols Preprocessor::preprocessed(const std::string &filename, QFile *file)
+	std::vector<Symbol> Preprocessor::preprocessed(const std::string &filename, FILE*& file)
 	{
 		std::string input = readOrMapFile(file);
 
@@ -1387,7 +1405,11 @@ namespace header_tool
 		// Preallocate some space to speed up the code below.
 		// The magic value was found by logging the final size
 		// and calculating an average when running moc over FOSS projects.
-		result.reserve(file->size() / 300000);
+		std::ifstream ifs(file);
+		ifs.seekg(0, ifs.end);
+		int length = ifs.tellg();
+		ifs.seekg(0, ifs.beg);
+		result.reserve(length / 300000);
 		preprocess(filename, result);
 		mergeStringLiterals(&result);
 
@@ -1419,7 +1441,7 @@ namespace header_tool
 				if (l == "...")
 				{
 					m->isVariadic = true;
-					arguments += Symbol(symbol().lineNum, PP_IDENTIFIER, "__VA_ARGS__");
+					arguments.push_back(Symbol(symbol().lineNum, PP_IDENTIFIER, "__VA_ARGS__"));
 					while (test(PP_WHITESPACE))
 					{
 					}
@@ -1427,16 +1449,16 @@ namespace header_tool
 						error("missing ')' in macro argument list");
 					break;
 				}
-				else if (!is_identifier(l.constData(), l.length()))
+				else if (!is_identifier(l.data(), l.length()))
 				{
 					error("Unexpected character in macro argument list.");
 				}
 			}
 
 			Symbol arg = symbol();
-			if (arguments.contains(arg))
+			if (std::find(arguments.begin(), arguments.end(), arg) != arguments.end())
 				error("Duplicate macro parameter.");
-			arguments += symbol();
+			arguments.push_back(symbol());
 
 			while (test(PP_WHITESPACE))
 			{
@@ -1471,6 +1493,4 @@ namespace header_tool
 		while (hasNext() && next() != t)
 			;
 	}
-
-#endif
 }
