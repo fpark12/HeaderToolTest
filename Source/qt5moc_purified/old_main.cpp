@@ -19,7 +19,6 @@
 namespace header_tool
 {
 
-#if 0
 
 	/*
 		This function looks at two file names and returns the name of the
@@ -32,20 +31,27 @@ namespace header_tool
 			/tmp/abc, xyz/klm -> /tmp/abc
 	 */
 
+	// TODO
 	static std::string combinePath(const std::string &infile, const std::string &outfile)
 	{
-		QFileInfo inFileInfo(QDir::current(), infile);
-		QFileInfo outFileInfo(QDir::current(), outfile);
-		const std::string relativePath = outFileInfo.dir().relativeFilePath(inFileInfo.filePath()));
-#ifdef Q_OS_WIN
+		std::filesystem::path cwd(std::filesystem::current_path());
+		std::filesystem::path in_file_info(infile);
+		std::filesystem::path out_file_info(outfile);
+		std::filesystem::current_path(in_file_info);
+		const std::string relative_path = out_file_info.relative_path().string();
+		std::filesystem::current_path(cwd);
+
+#ifdef PLATFORM_WINDOWS
 		// It's a system limitation.
 		// It depends on the Win API function which is used by the program to open files.
 		// cl apparently uses the functions that have the MAX_PATH limitation.
-		if (outFileInfo.dir().absolutePath().length() + relativePath.length() + 1 >= 260)
-			return inFileInfo.absoluteFilePath());
+		if (out_file_info.string().length() + relative_path.length() + 1 >= 260)
+			return in_file_info.string();
 #endif
-		return relativePath;
+		return relative_path;
 	}
+
+#if 0
 
 #endif
 	void error(const char *msg = "Invalid argument")
@@ -122,43 +128,46 @@ namespace header_tool
 		return output;
 	}
 
-#if 0
 	static std::vector<std::string> argumentsFromCommandLineAndFile(const std::vector<std::string> &arguments)
 	{
 		std::vector<std::string> allArguments;
 		allArguments.reserve(arguments.size());
+		std::string line;
 		for (const std::string &argument : arguments)
 		{
 			// "@file" doesn't start with a '-' so we can't use QCommandLineParser for it
-			if (argument.startsWith(QLatin1Char('@')))
+			if (argument[0] == '@')
 			{
 				std::string optionsFile = argument;
-				optionsFile.remove(0, 1);
+				optionsFile.erase(0, 1);
 				if (optionsFile.empty())
 				{
 					error("The @ option requires an input file");
 					return std::vector<std::string>();
 				}
-				QFile f(optionsFile);
-				if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
+
+				std::ifstream f(optionsFile, std::ios::in);
+				if (!f.good())
 				{
 					error("Cannot open options file specified with @");
 					return std::vector<std::string>();
 				}
-				while (!f.atEnd())
+				while (std::getline(f, line))
 				{
-					std::string line = std::string::fromLocal8Bit(f.readLine().trimmed());
 					if (!line.empty())
-						allArguments << line;
+					{
+						allArguments.push_back(line);
+					}
 				}
 			}
 			else
 			{
-				allArguments << argument;
+				allArguments.push_back(argument);
 			}
 		}
 		return allArguments;
 	}
+#if 0
 
 #endif
 
