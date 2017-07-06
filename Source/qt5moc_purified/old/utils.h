@@ -16,7 +16,7 @@ namespace header_tool
 			if (ifs.is_open())
 			{
 				ifs.seekg(0, ifs.end);
-				int length = ifs.tellg();
+				size_t length = ifs.tellg();
 				ifs.seekg(0, ifs.beg);
 
 				if (length == 0)

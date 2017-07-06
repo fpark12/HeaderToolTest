@@ -14,7 +14,7 @@ namespace header_tool
 	// This function is shared with moc.cpp. This file should be included where needed.
 	static std::string normalizeTypeInternal(const char *t, const char *e, bool fixScope = false, bool adjustConst = true)
 	{
-		int len = e - t;
+		size_t len = e - t;
 		/*
 		Convert 'char const *' into 'const char *'. Start at index 1,
 		not 0, because 'const char *' is already OK.
@@ -110,7 +110,7 @@ namespace header_tool
 			if (fixScope && c == ':' && *t == ':' ) {
 				++t;
 				c = *t++;
-				int i = result.size() - 1;
+				size_t i = result.size() - 1;
 				while (i >= 0 && is_ident_char(result.at(i)))
 					--i;
 				result.resize(i + 1);
@@ -175,7 +175,7 @@ namespace header_tool
 	static std::string normalizeType(const std::string &ba, bool fixScope = false)
 	{
 		const char *s = ba.data();
-		int len = ba.size();
+		size_t len = ba.size();
 		char stackbuf[64];
 		char *buf = (len >= 64 ? new char[len + 1] : stackbuf);
 		char *d = buf;
@@ -286,8 +286,8 @@ namespace header_tool
 				&& knownGadgets.find(std::get<0>(def->superclassList.front())) != knownGadgets.end())
 			{
 				// Q_GADGET subclasses are treated as Q_GADGETs
-				knownGadgets.insert(def->classname, def->qualified);
-				knownGadgets.insert(def->qualified, def->qualified);
+				knownGadgets.insert_or_assign(def->classname, def->qualified);
+				knownGadgets.insert_or_assign(def->qualified, def->qualified);
 			}
 		}
 		if (!test(LBRACE))
@@ -790,7 +790,7 @@ namespace header_tool
 								const bool parseNamespace = currentFilenames.size() <= 1;
 								if (parseNamespace)
 								{
-									for (int i = namespaceList.size() - 1; i >= 0; --i)
+									for (size_t i = namespaceList.size() - 1; i >= 0; --i)
 									{
 										if (inNamespace(&namespaceList.at(i)))
 										{
@@ -932,7 +932,7 @@ namespace header_tool
 						if (!def.hasQObject && !def.hasQGadget)
 							continue;
 
-						for (int i = namespaceList.size() - 1; i >= 0; --i)
+						for (size_t i = namespaceList.size() - 1; i >= 0; --i)
 							if (inNamespace(&namespaceList.at(i)))
 							{
 
@@ -940,8 +940,8 @@ namespace header_tool
 							}
 
 						std::unordered_map<std::string, std::string> &classHash = def.hasQObject ? knownQObjectClasses : knownGadgets;
-						classHash.insert(def.classname, def.qualified);
-						classHash.insert(def.qualified, def.qualified);
+						classHash.insert_or_assign(def.classname, def.qualified);
+						classHash.insert_or_assign(def.qualified, def.qualified);
 
 						continue;
 					}
@@ -953,7 +953,7 @@ namespace header_tool
 			if (parseClassHead(&def))
 			{
 				FunctionDef::Access access = FunctionDef::Private;
-				for (int i = namespaceList.size() - 1; i >= 0; --i)
+				for (size_t i = namespaceList.size() - 1; i >= 0; --i)
 					if (inNamespace(&namespaceList.at(i)))
 						def.qualified.insert(0, namespaceList.at(i).classname + "::");
 				while (inClass(&def) && hasNext())
@@ -1153,8 +1153,8 @@ namespace header_tool
 
 				classList.push_back(def);
 				std::unordered_map<std::string, std::string> &classHash = def.hasQObject ? knownQObjectClasses : knownGadgets;
-				classHash.insert(def.classname, def.qualified);
-				classHash.insert(def.qualified, def.qualified);
+				classHash.insert_or_assign(def.classname, def.qualified);
+				classHash.insert_or_assign(def.qualified, def.qualified);
 			}
 		}
 		for (const auto &n : namespaceList)
@@ -1178,8 +1178,8 @@ namespace header_tool
 			}
 			else
 			{
-				knownGadgets.insert(def.classname, def.qualified);
-				knownGadgets.insert(def.qualified, def.qualified);
+				knownGadgets.insert_or_assign(def.classname, def.qualified);
+				knownGadgets.insert_or_assign(def.qualified, def.qualified);
 				classList.push_back(def);
 			}
 		}
@@ -1255,7 +1255,7 @@ namespace header_tool
 	void Moc::generate(FILE *out)
 	{
 		std::string fn = filename;
-		int i = filename.length() - 1;
+		size_t i = filename.length() - 1;
 		while (i > 0 && filename.at(i - 1) != '/' && filename.at(i - 1) != '\\')
 			--i;                                // skip path
 		if (i >= 0)
@@ -1269,7 +1269,7 @@ namespace header_tool
 
 		if (!noInclude)
 		{
-			if (includePath.size() && !includePath.back() == '/')
+			if (!!includePath.size() && !includePath.back() == '/')
 				includePath += '/';
 			for (int i = 0; i < includeFiles.size(); ++i)
 			{
@@ -1622,7 +1622,7 @@ namespace header_tool
 				std::filesystem::path fi = currentFilenames.top();
 				fi /= metaDataFile;
 
-				FILE* f = fopen(fi.string.c_str(), "r");
+				FILE* f = fopen(fi.string().c_str(), "r");
 				// QFileInfo fi(QFileInfo(std::string::fromLocal8Bit(currentFilenames.top().constData())).dir(), std::string::fromLocal8Bit(metaDataFile.constData()));
 				for (int j = 0; j < includes.size() && !std::filesystem::exists(fi); ++j)
 				{
@@ -1750,7 +1750,7 @@ namespace header_tool
 			}
 		}
 
-		def->flagAliases.insert(enumName, flagName);
+		def->flagAliases.insert_or_assign(enumName, flagName);
 		next(RPAREN);
 	}
 
@@ -1805,13 +1805,13 @@ namespace header_tool
 			// resolve from classnames to interface ids
 			for (int i = 0; i < iface.size(); ++i)
 			{
-				const std::string iid = interface2IdMap.value(iface.at(i).className);
+				const std::string iid = interface2IdMap[iface.at(i).className];
 				if (iid.empty())
 					error("Undefined interface");
 
 				iface[i].interfaceId = iid;
 			}
-			def->interfaceList += iface;
+			def->interfaceList.push_back(iface);
 		}
 		next(RPAREN);
 	}
@@ -1839,7 +1839,7 @@ namespace header_tool
 			next(IDENTIFIER);
 			iid = lexem();
 		}
-		interface2IdMap.insert(interface, iid);
+		interface2IdMap.insert_or_assign(interface, iid);
 		next(RPAREN);
 	}
 
