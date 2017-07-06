@@ -7,6 +7,35 @@
 
 namespace header_tool
 {
+	std::string read_all(FILE* file)
+	{
+		std::ifstream ifs(file);
+		std::string content;
+		if (file)
+		{
+			if (ifs.is_open())
+			{
+				ifs.seekg(0, ifs.end);
+				int length = ifs.tellg();
+				ifs.seekg(0, ifs.beg);
+
+				if (length == 0)
+				{
+					return std::string();
+				}
+
+				content.resize(length);
+
+				if (content.capacity() == length)
+				{
+					ifs.read(&content.front(), length);
+				}
+			}
+		}
+
+		return std::move(content);
+	}
+
 	inline std::string replace_all(std::string str, const std::string& from, const std::string& to)
 	{
 		size_t start_pos = 0;
