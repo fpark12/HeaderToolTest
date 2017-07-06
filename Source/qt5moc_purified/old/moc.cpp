@@ -299,7 +299,6 @@ namespace header_tool
 		return foundRBrace;
 	}
 
-
 	Type Moc::parseType()
 	{
 		Type type;
@@ -458,11 +457,11 @@ namespace header_tool
 		}
 		return true;
 	}
-#if 0
 
 	void Moc::parseFunctionArguments(FunctionDef *def)
 	{
-		Q_UNUSED(def);
+		// todo
+		//Q_UNUSED(def);
 		while (hasNext())
 		{
 			ArgumentDef  arg;
@@ -484,22 +483,22 @@ namespace header_tool
 			arg.typeNameForCast = normalizeType(std::string(noRef(arg.type.name) + "(*)" + arg.rightType));
 			if (test(EQ))
 				arg.isDefault = true;
-			def->arguments += arg;
+			def->arguments.push_back(arg);
 			if (!until(COMMA))
 				break;
 		}
 
 		if (!def->arguments.empty()
-			&& def->arguments.constLast().normalizedType == "QPrivateSignal")
+			&& def->arguments.back().normalizedType == "QPrivateSignal")
 		{
-			def->arguments.removeLast();
+			def->arguments.pop_back();
 			def->isPrivateSignal = true;
 		}
 	}
 
 	bool Moc::testFunctionAttribute(FunctionDef *def)
 	{
-		if (index < std::vector<Symbol>.size() && testFunctionAttribute(std::vector<Symbol>.at(index).token, def))
+		if (index < symbols.size() && testFunctionAttribute(symbols.at(index).token, def))
 		{
 			++index;
 			return true;
@@ -537,10 +536,12 @@ namespace header_tool
 		{
 			next(LPAREN);
 			std::string revision = lexemUntil(RPAREN);
-			revision.remove(0, 1);
-			revision.chop(1);
+			revision.erase(0, 1);
+			revision.erase(revision.back(), 1);
 			bool ok = false;
-			def->revision = revision.toInt(&ok);
+
+			ok = true;
+			def->revision = std::stoi(revision);
 			if (!ok || def->revision < 0)
 				error("Invalid revision");
 			return true;
@@ -652,7 +653,7 @@ namespace header_tool
 		{
 			const std::string msg = "Function declaration " + def->name
 				+ " contains extra qualification. Ignoring as signal or slot.";
-			warning(msg.constData());
+			warning(msg.data());
 			return false;
 		}
 		return true;
@@ -737,12 +738,11 @@ namespace header_tool
 		{
 			const std::string msg = "parsemaybe: Function declaration " + def->name
 				+ " contains extra qualification. Ignoring as signal or slot.";
-			warning(msg.constData());
+			warning(msg.data());
 			return false;
 		}
 		return true;
 	}
-#endif
 
 	void Moc::parse()
 	{
@@ -1329,7 +1329,7 @@ namespace header_tool
 			next(LPAREN);
 			std::string revision = lexemUntil(RPAREN);
 			revision.erase(0, 1);
-			revision.erase(revision.back(), *revision.end());
+			revision.erase(revision.back(), 1);
 			bool ok = false;
 
 			ok = true;
@@ -1393,7 +1393,7 @@ namespace header_tool
 			next(LPAREN);
 			std::string revision = lexemUntil(RPAREN);
 			revision.erase(0, 1);
-			revision.erase(revision.back(), *revision.end());
+			revision.erase(revision.back(), 1);
 			bool ok = false;
 
 			ok = true;
@@ -1677,7 +1677,6 @@ namespace header_tool
 		mustIncludeQPluginH = true;
 		next(RPAREN);
 	}
-#if 0
 
 	void Moc::parsePrivateProperty(ClassDef *def)
 	{
@@ -1707,7 +1706,7 @@ namespace header_tool
 		if (propDef.revision > 0)
 			++def->revisionedProperties;
 
-		def->propertyList += propDef;
+		def->propertyList.push_back(propDef);
 	}
 
 	void Moc::parseEnumOrFlag(BaseDef *def, bool isFlag)
@@ -1776,7 +1775,7 @@ namespace header_tool
 			next(RPAREN);
 		}
 		next(RPAREN);
-		def->classInfoList += infoDef;
+		def->classInfoList.push_back(infoDef);
 	}
 
 	void Moc::parseInterfaces(ClassDef *def)
@@ -1785,26 +1784,26 @@ namespace header_tool
 		while (test(IDENTIFIER))
 		{
 			std::vector<ClassDef::Interface> iface;
-			iface += ClassDef::Interface(lexem());
+			iface.push_back(ClassDef::Interface(lexem()));
 			while (test(SCOPE))
 			{
-				iface.last().className += lexem();
+				iface.back().className += lexem();
 				next(IDENTIFIER);
-				iface.last().className += lexem();
+				iface.back().className += lexem();
 			}
 			while (test(COLON))
 			{
 				next(IDENTIFIER);
-				iface += ClassDef::Interface(lexem());
+				iface.push_back(ClassDef::Interface(lexem()));
 				while (test(SCOPE))
 				{
-					iface.last().className += lexem();
+					iface.back().className += lexem();
 					next(IDENTIFIER);
-					iface.last().className += lexem();
+					iface.back().className += lexem();
 				}
 			}
 			// resolve from classnames to interface ids
-			for (int i = 0; i < iface.count(); ++i)
+			for (int i = 0; i < iface.size(); ++i)
 			{
 				const std::string iid = interface2IdMap.value(iface.at(i).className);
 				if (iid.empty())
@@ -1848,9 +1847,9 @@ namespace header_tool
 	{
 		next(LPAREN);
 		std::string typeName = lexemUntil(RPAREN);
-		typeName.remove(0, 1);
-		typeName.chop(1);
-		metaTypes.append(typeName);
+		typeName.erase(0, 1);
+		typeName.erase(typeName.back(), 1);
+		metaTypes.push_back(typeName);
 	}
 
 	void Moc::parseSlotInPrivate(ClassDef *def, FunctionDef::Access access)
@@ -1868,12 +1867,12 @@ namespace header_tool
 		next(COMMA);
 		funcDef.access = access;
 		parseFunction(&funcDef, true);
-		def->slotList += funcDef;
-		while (funcDef.arguments.size() > 0 && funcDef.arguments.constLast().isDefault)
+		def->slotList.push_back(funcDef);
+		while (funcDef.arguments.size() > 0 && funcDef.arguments.back().isDefault)
 		{
 			funcDef.wasCloned = true;
-			funcDef.arguments.removeLast();
-			def->slotList += funcDef;
+			funcDef.arguments.pop_back();
+			def->slotList.push_back(funcDef);
 		}
 		if (funcDef.revision > 0)
 			++def->revisionedMethods;
@@ -1887,7 +1886,7 @@ namespace header_tool
 		std::string s;
 		while (from <= index)
 		{
-			std::string n = std::vector<Symbol>.at(from++ - 1).lexem();
+			std::string n = symbols.at(from++ - 1).lexem();
 			if (s.size() && n.size())
 			{
 				char prev = s.at(s.size() - 1);
@@ -1910,7 +1909,7 @@ namespace header_tool
 		int angleCount = 0;
 		if (index)
 		{
-			switch (std::vector<Symbol>.at(index - 1).token)
+			switch (symbols.at(index - 1).token)
 			{
 				case LBRACE: ++braceCount; break;
 				case LBRACK: ++brackCount; break;
@@ -1925,9 +1924,9 @@ namespace header_tool
 		// the beginning of a template type. so we just use heuristics.
 		int possible = -1;
 
-		while (index < std::vector<Symbol>.size())
+		while (index < symbols.size())
 		{
-			Token t = std::vector<Symbol>.at(index++).token;
+			Token t = symbols.at(index++).token;
 			switch (t)
 			{
 				case LBRACE: ++braceCount; break;
@@ -1995,9 +1994,9 @@ namespace header_tool
 
 	void Moc::checkSuperClasses(ClassDef *def)
 	{
-		const std::string firstSuperclass = def->superclassList.value(0).first;
+		const std::string firstSuperclass = std::get<0>(def->superclassList[0]);
 
-		if (!knownQObjectClasses.contains(firstSuperclass))
+		if (!(knownQObjectClasses.find(firstSuperclass) != knownQObjectClasses.end()))
 		{
 			// enable once we /require/ include paths
 #if 0
@@ -2011,10 +2010,10 @@ namespace header_tool
 #endif
 			return;
 		}
-		for (int i = 1; i < def->superclassList.count(); ++i)
+		for (int i = 1; i < def->superclassList.size(); ++i)
 		{
-			const std::string superClass = def->superclassList.at(i).first;
-			if (knownQObjectClasses.contains(superClass))
+			const std::string superClass = std::get<0>(def->superclassList.at(i));
+			if (knownQObjectClasses.find(superClass) != knownQObjectClasses.end())
 			{
 				const std::string msg
 					= "Class "
@@ -2024,14 +2023,14 @@ namespace header_tool
 					+ " and "
 					+ superClass
 					+ ". This is not supported!";
-				warning(msg.constData());
+				warning(msg.data());
 			}
 
-			if (interface2IdMap.contains(superClass))
+			if (interface2IdMap.find(superClass) != interface2IdMap.end())
 			{
 				bool registeredInterface = false;
-				for (int i = 0; i < def->interfaceList.count(); ++i)
-					if (def->interfaceList.at(i).constFirst().className == superClass)
+				for (int i = 0; i < def->interfaceList.size(); ++i)
+					if (def->interfaceList.at(i).front().className == superClass)
 					{
 						registeredInterface = true;
 						break;
@@ -2047,7 +2046,7 @@ namespace header_tool
 						+ " but does not list it in Q_INTERFACES. qobject_cast to "
 						+ superClass
 						+ " will not work!";
-					warning(msg.constData());
+					warning(msg.data());
 				}
 			}
 		}
@@ -2060,19 +2059,19 @@ namespace header_tool
 		// returning pointers, or const char * for std::string.
 		//
 		std::set<std::string> definedProperties;
-		for (int i = 0; i < cdef->propertyList.count(); ++i)
+		for (int i = 0; i < cdef->propertyList.size(); ++i)
 		{
 			PropertyDef &p = cdef->propertyList[i];
 			if (p.read.empty() && p.member.empty())
 				continue;
-			if (definedProperties.contains(p.name))
+			if (definedProperties.find(p.name) != definedProperties.end())
 			{
 				std::string msg = "The property '" + p.name + "' is defined multiple times in class " + cdef->classname + ".";
-				warning(msg.constData());
+				warning(msg.data());
 			}
 			definedProperties.insert(p.name);
 
-			for (int j = 0; j < cdef->publicList.count(); ++j)
+			for (int j = 0; j < cdef->publicList.size(); ++j)
 			{
 				const FunctionDef &f = cdef->publicList.at(j);
 				if (f.name != p.read)
@@ -2085,14 +2084,14 @@ namespace header_tool
 				std::string tmp = f.normalizedType;
 				if (p.type == "std::string" && tmp == "const char *")
 					tmp = "std::string";
-				if (tmp.left(6) == "const ")
-					tmp = tmp.mid(6);
-				if (p.type != tmp && tmp.endsWith('*'))
+				if (sub(tmp, 0, 6) == "const ")
+					tmp = sub(tmp, 6);
+				if (p.type != tmp && tmp.back() == '*')
 				{
-					tmp.chop(1);
+					tmp.erase(tmp.back(), 1);
 					spec = PropertyDef::PointerSpec;
 				}
-				else if (f.type.name.endsWith('&'))
+				else if (f.type.name.back() == '&')
 				{ // raw type, not normalized type
 					spec = PropertyDef::ReferenceSpec;
 				}
@@ -2104,7 +2103,7 @@ namespace header_tool
 			if (!p.notify.empty())
 			{
 				int notifyId = -1;
-				for (int j = 0; j < cdef->signalList.count(); ++j)
+				for (int j = 0; j < cdef->signalList.size(); ++j)
 				{
 					const FunctionDef &f = cdef->signalList.at(j);
 					if (f.name != p.notify)
@@ -2122,12 +2121,9 @@ namespace header_tool
 				{
 					std::string msg = "NOTIFY signal '" + p.notify + "' of property '" + p.name
 						+ "' does not exist in class " + cdef->classname + ".";
-					error(msg.constData());
+					error(msg.data());
 				}
 			}
 		}
 	}
-
-
-#endif
 }
