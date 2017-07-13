@@ -7,7 +7,7 @@
 
 namespace header_tool
 {
-	std::string read_all(FILE* file)
+	inline std::string read_all(FILE* file)
 	{
 		std::ifstream ifs(file);
 		std::string content;
